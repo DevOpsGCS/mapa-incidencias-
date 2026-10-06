@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { readOnlyQuery } from "../db";
-import { STATUS_NAME_TO_APP } from "../repositories/ticketsRepository";
+import { STATUS_NAME_TO_APP, toDisplayTicketId } from "../repositories/ticketsRepository";
 import { TicketStatus } from "../types";
 
 const POLL_INTERVAL_MS = 20000; // misma cadencia que el poller de tickets (liveSimulator.ts)
@@ -8,6 +8,7 @@ const POLL_INTERVAL_MS = 20000; // misma cadencia que el poller de tickets (live
 interface ThreadEventRow {
   id: number;
   ticketId: number;
+  number: string | null;
   data: string | null;
   departmentName: string | null;
 }
@@ -46,7 +47,7 @@ export function startTicketEventsPoller(io: Server): void {
   const tick = async () => {
     try {
       const rows = await readOnlyQuery<ThreadEventRow>(
-        `SELECT te.id AS id, th.object_id AS ticketId, te.data AS data, d.name AS departmentName
+        `SELECT te.id AS id, th.object_id AS ticketId, t.number AS number, te.data AS data, d.name AS departmentName
          FROM ost_thread_event te
          JOIN ost_thread th ON th.id = te.thread_id AND th.object_type = 'T'
          LEFT JOIN ost_ticket t ON t.ticket_id = th.object_id
@@ -64,7 +65,9 @@ export function startTicketEventsPoller(io: Server): void {
         if (!status) continue; // palabra de estado no reconocida: no inventamos nada, se ignora
 
         const payload: TicketStatusChangedPayload = {
-          ticketId: `TCK-${row.ticketId}`,
+          // Mismo formato que mapRow: si no coincidiera, el frontend no
+          // encontraría el ticket al aplicar el cambio de estado.
+          ticketId: toDisplayTicketId(row.number, row.ticketId),
           status,
         };
         // El departamento solo decide la room de destino (mismo esquema que

@@ -152,6 +152,7 @@ const DEPARTMENT_NAME_FIXES: Record<string, string> = {
 
 interface TicketRow {
   ticketId: number;
+  number: string | null;
   statusId: number;
   topicId: number | null;
   created: string; // raw MySQL "YYYY-MM-DD HH:MM:SS" (ver dateStrings en db.ts)
@@ -219,6 +220,19 @@ function resolveSiteId(row: TicketRow, ctx: MapRowContext): string {
   return configured ? configured.id : rawName;
 }
 
+/**
+ * El número visible es ost_ticket.number (el que muestra osTicket), NUNCA
+ * ticket_id: son contadores distintos (number sale de ost_sequence, ticket_id
+ * es el AUTO_INCREMENT) y se desalinean cada vez que osTicket consume un
+ * número sin llegar a guardar el ticket — pasó el 2026-09-20 (desde
+ * ticket_id 1890 el number va +1) y antes, en 2024, iban -1. El link a
+ * osTicket sí usa ticket_id, porque eso espera tickets.php?id=.
+ */
+export function toDisplayTicketId(number: string | null, ticketId: number): string {
+  const trimmed = number?.trim().replace(/^0+(?=\d)/, "");
+  return `TCK-${trimmed || ticketId}`;
+}
+
 /** Devuelve null si el ticket debe quedar fuera del dashboard (ver loadStatusAppById). */
 function mapRow(row: TicketRow, ctx: MapRowContext): Ticket | null {
   const status = ctx.statusAppById.get(row.statusId) ?? null;
@@ -234,7 +248,7 @@ function mapRow(row: TicketRow, ctx: MapRowContext): Ticket | null {
   const agent = row.agentName?.trim() || "Sin asignar";
 
   return {
-    id: `TCK-${row.ticketId}`,
+    id: toDisplayTicketId(row.number, row.ticketId),
     subject: row.subject?.trim() || "(Sin asunto)",
     status,
     priority,
@@ -260,6 +274,7 @@ function mapRow(row: TicketRow, ctx: MapRowContext): Ticket | null {
 const TICKETS_SELECT = `
   SELECT
     t.ticket_id  AS ticketId,
+    t.number     AS number,
     t.status_id  AS statusId,
     t.topic_id   AS topicId,
     t.created    AS created,
