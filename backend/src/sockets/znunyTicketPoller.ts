@@ -18,11 +18,30 @@ export async function initTicketPollerState(): Promise<TicketPollerState> {
   const [row] = await znunyReadOnlyQuery<{ maxId: number | null; maxChange: string | null }>(
     "SELECT MAX(id) AS maxId, MAX(change_time) AS maxChange FROM ticket"
   );
+  const watermark = row?.maxChange ?? "1970-01-01 00:00:00";
+  // Precarga de la última cola conocida de cada ticket vigente (excluye
+  // merged/removed): sin esto, tras un reinicio no se sabría de qué rooms
+  // retirar un ticket que cambia de cola o desaparece.
+  const [queueRows, atWatermark] = await Promise.all([
+    znunyReadOnlyQuery<{ id: number; queue: string }>(
+      `SELECT t.id AS id, q.name AS queue
+         FROM ticket t
+         JOIN queue q ON q.id = t.queue_id
+         JOIN ticket_state s ON s.id = t.ticket_state_id
+         JOIN ticket_state_type st ON st.id = s.type_id
+        WHERE st.name NOT IN ('merged', 'removed')`
+    ),
+    znunyReadOnlyQuery<{ id: number; change_time: string }>(
+      "SELECT id, change_time FROM ticket WHERE change_time = ?",
+      [watermark]
+    ),
+  ]);
   return {
     lastId: row?.maxId ?? 0,
-    watermark: row?.maxChange ?? "1970-01-01 00:00:00",
-    seen: new Set(),
-    queues: new Map(),
+    watermark,
+    // Lo que ya existe en la marca inicial no se re-emite como updated.
+    seen: new Set(atWatermark.map((r) => `${r.id}|${r.change_time}`)),
+    queues: new Map(queueRows.map((r) => [r.id, r.queue])),
   };
 }
 

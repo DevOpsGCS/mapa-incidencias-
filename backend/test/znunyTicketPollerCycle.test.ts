@@ -7,7 +7,11 @@ vi.mock("../src/znuny/ticketsRepository", () => ({
   findTicketsByIds: (...a: unknown[]) => findMock(...a),
 }));
 
-import { runTicketCycle, type TicketPollerState } from "../src/sockets/znunyTicketPoller";
+import {
+  initTicketPollerState,
+  runTicketCycle,
+  type TicketPollerState,
+} from "../src/sockets/znunyTicketPoller";
 
 function fakeIo() {
   const events: { rooms: string[]; event: string; payload: unknown }[] = [];
@@ -83,5 +87,52 @@ describe("runTicketCycle", () => {
     findMock.mockResolvedValue([t(11, "CCTV")]);
     await runTicketCycle(io as never, state);
     expect(io.events.map((e) => e.event)).toEqual(["ticket:new"]);
+  });
+});
+
+describe("estado inicial precargado", () => {
+  function mockInit(queues: { id: number; queue: string }[]) {
+    queryMock.mockImplementation(async (sql: string) => {
+      if (sql.includes("MAX(id)")) return [{ maxId: 10, maxChange: "2026-11-08 10:00:00" }];
+      if (sql.includes("JOIN queue")) return queues;
+      if (sql.includes("change_time = ?")) return [{ id: 7, change_time: "2026-11-08 10:00:00" }];
+      return [];
+    });
+  }
+
+  it("precarga colas y marca como vistos los tickets de la marca inicial", async () => {
+    mockInit([{ id: 5, queue: "CCTV" }]);
+    const state = await initTicketPollerState();
+    expect(state.queues.get(5)).toBe("CCTV");
+    expect(state.seen).toEqual(new Set(["7|2026-11-08 10:00:00"]));
+  });
+
+  it("cambio de cola en el primer ciclo tras init -> removed a las rooms viejas", async () => {
+    mockInit([{ id: 5, queue: "CCTV" }]);
+    const state = await initTicketPollerState();
+    const io = fakeIo();
+    queryMock.mockReset();
+    queryMock.mockResolvedValue([{ id: 5, change_time: "2026-11-08 10:00:09" }]);
+    findMock.mockResolvedValue([t(5, "Tecnología")]);
+    await runTicketCycle(io as never, state);
+    expect(io.events.map((e) => e.event)).toEqual(["ticket:updated", "ticket:removed"]);
+    expect(io.events[1]).toMatchObject({ rooms: ["queue:CCTV"], payload: { id: 5 } });
+  });
+
+  it("ticket precargado que pasa a merged/removed en el primer ciclo -> removed", async () => {
+    mockInit([{ id: 5, queue: "Tecnología::Servicios IT" }]);
+    const state = await initTicketPollerState();
+    const io = fakeIo();
+    queryMock.mockReset();
+    queryMock.mockResolvedValue([{ id: 5, change_time: "2026-11-08 10:00:09" }]);
+    findMock.mockResolvedValue([]);
+    await runTicketCycle(io as never, state);
+    expect(io.events).toEqual([
+      {
+        rooms: ["all-queues", "queue:Tecnología", "queue:Tecnología::Servicios IT"],
+        event: "ticket:removed",
+        payload: { id: 5 },
+      },
+    ]);
   });
 });

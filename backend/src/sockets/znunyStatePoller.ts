@@ -38,7 +38,7 @@ export async function runStateCycle(io: Server, state: StatePollerState): Promis
     io.to(roomsForTicketQueue(ticket.queue)).emit("ticket:status_changed", {
       id: ticket.id,
       from: parseStateUpdate(row.name)?.from ?? null,
-      to: ticket.state,
+      to: parseStateUpdate(row.name)?.to ?? ticket.state,
       ticket,
     });
   }
