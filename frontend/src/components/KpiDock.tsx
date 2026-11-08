@@ -10,23 +10,16 @@ interface KpiDockProps {
   isPending?: boolean;
 }
 
-const TREND_WINDOW = 7;
+const TREND_WINDOW = 30;
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/** Tickets creados en los últimos 7 días y diferencia contra los 7 anteriores. */
-function weekTrend(trend: ZnunyStats["trend"]): { current: number; delta: number } {
-  const sum = (points: ZnunyStats["trend"]) => points.reduce((acc, p) => acc + p.count, 0);
-  const current = sum(trend.slice(-TREND_WINDOW));
-  const previous = sum(trend.slice(-TREND_WINDOW * 2, -TREND_WINDOW));
-  return { current, delta: current - previous };
-}
-
 export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = false }: KpiDockProps) {
   const topName = catalog.priorities.find((p) => p.id === catalog.topPriorityId)?.name ?? "Prioridad máxima";
-  const { current, delta } = weekTrend(stats.trend);
+  // stats.trend ya cubre los últimos 30 días calendario de El Salvador.
+  const trendTotal = stats.trend.slice(-TREND_WINDOW).reduce((acc, p) => acc + p.count, 0);
   const items: { label: string; value: number; color: string; alarm?: boolean; hint?: string }[] = [
     { label: "Abiertos", value: stats.totalOpen, color: "var(--blue)" },
     {
@@ -38,9 +31,9 @@ export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = fals
     { label: "Cerrados hoy", value: stats.closedToday, color: "var(--green)" },
     {
       label: `Tendencia (${TREND_WINDOW} d)`,
-      value: current,
+      value: trendTotal,
       color: "var(--cyan)",
-      hint: `${delta > 0 ? "▲ +" : delta < 0 ? "▼ " : "= "}${delta} vs. 7 d previos`,
+      hint: "tickets creados",
     },
   ];
 

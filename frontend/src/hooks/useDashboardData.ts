@@ -42,7 +42,7 @@ export function useDashboardData() {
     lastHeartbeatAt: null,
   });
   const [notifications, setNotifications] = useState<TicketNotification[]>([]);
-  const { catalog } = useCatalog();
+  const { catalog, error: catalogError, refresh: refreshCatalog } = useCatalog();
 
   // Necesario para leer el estado más reciente desde handlers registrados
   // una sola vez en el socket (useSocket los conserva vía handlersRef).
@@ -129,6 +129,7 @@ export function useDashboardData() {
    * reenvía eventos perdidos durante un corte.
    */
   const loadFullState = useCallback(() => {
+    refreshCatalog();
     Promise.all([fetchSites(), fetchTickets(), fetchQueueAccess()])
       .then(([sites, tickets, queueAccess]) => {
         setState((prev) => ({ ...prev, sites, tickets, queueAccess, loading: false, error: null }));
@@ -136,7 +137,7 @@ export function useDashboardData() {
       .catch((error: Error) => {
         setState((prev) => ({ ...prev, loading: false, error: error.message }));
       });
-  }, []);
+  }, [refreshCatalog]);
 
   const { connected } = useSocket({
     onTicketNew: handleTicketNew,
@@ -153,5 +154,5 @@ export function useDashboardData() {
     [state.tickets, state.sites, catalog]
   );
 
-  return { ...state, connected, catalog, stats, notifications, dismissNotification };
+  return { ...state, error: state.error ?? (catalog ? null : catalogError), connected, catalog, stats, notifications, dismissNotification };
 }

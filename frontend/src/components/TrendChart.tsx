@@ -23,7 +23,7 @@ function formatShortDate(dateKey: string): string {
 }
 
 export function TrendChart({ stats }: TrendChartProps) {
-  const [rangeDays, setRangeDays] = useState<(typeof RANGE_OPTIONS)[number]>(7);
+  const [rangeDays, setRangeDays] = useState<(typeof RANGE_OPTIONS)[number]>(30);
 
   const data = stats.trend.slice(-rangeDays).map((point) => ({
     ...point,
