@@ -52,3 +52,25 @@ export function unknownQueuesNotices(
   }
   return unknownQueues.map((q) => ({ kind: "error" as const, text: `Cola inexistente en Znuny: ${q}` }));
 }
+
+/**
+ * Separa lo seleccionado en colas que existen (válidas en el catálogo) y colas
+ * inexistentes (renombradas/borradas en Znuny). `catalogQueues === null` (Znuny
+ * caído) = no se puede saber: todo cuenta como existente.
+ */
+export function splitSelectedQueues(
+  selected: string[],
+  catalogQueues: { name: string; valid: boolean }[] | null
+): { known: string[]; unknown: string[] } {
+  if (catalogQueues === null) return { known: [...selected], unknown: [] };
+  const valid = new Set(catalogQueues.filter((q) => q.valid).map((q) => q.name));
+  return {
+    known: selected.filter((q) => valid.has(q)),
+    unknown: selected.filter((q) => !valid.has(q)),
+  };
+}
+
+/** Nueva selección cuando el selector de árbol (que solo ve colas válidas) cambia: conserva las inexistentes aún no quitadas. */
+export function mergeKnownSelection(unknown: string[], nextKnown: string[]): string[] {
+  return [...unknown, ...nextKnown];
+}

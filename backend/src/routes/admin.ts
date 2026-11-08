@@ -188,6 +188,8 @@ async function resolveAllowedQueues(raw: unknown): Promise<ResolveQueuesResult> 
   if (!Array.isArray(raw) || !raw.every((v) => typeof v === "string")) {
     return { ok: false, error: "allowedQueues debe ser un array de strings o null." };
   }
+  // [] = todas las colas: no hay nada que validar, se puede guardar con Znuny caído.
+  if (raw.length === 0) return { ok: true, queues: [] };
   const known = new Set((await getCatalog()).queues.map((q) => q.name));
   const unknown = raw.filter((q) => !known.has(q));
   if (unknown.length > 0) {

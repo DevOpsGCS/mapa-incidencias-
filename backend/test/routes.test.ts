@@ -148,6 +148,17 @@ describe("admin", () => {
     expect(res.body).toEqual([{ key: "K2", label: "Dos" }]);
   });
 
+  it("PATCH profile con allowedQueues [] se guarda aunque Znuny esté caído", async () => {
+    m.getCatalog.mockRejectedValue(new ZnunyUnavailableError());
+    const res = await request(app)
+      .patch("/api/admin/users/ana/profile")
+      .set("Cookie", admin)
+      .send({ allowedQueues: [] });
+    expect(res.status).not.toBe(503);
+    expect(m.users.updateProfile).toHaveBeenCalled();
+    expect(m.users.updateProfile.mock.calls[0][1]).toMatchObject({ allowedQueues: [] });
+  });
+
   it("PATCH profile con cola fantasma -> 400 mencionándola", async () => {
     const res = await request(app)
       .patch("/api/admin/users/ana/profile")

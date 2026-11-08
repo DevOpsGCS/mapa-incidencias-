@@ -3,7 +3,9 @@ import {
   buildQueuesPayload,
   modeFromAllowedQueues,
   NO_SPECIFIC_QUEUES_ERROR,
+  mergeKnownSelection,
   queueCellFor,
+  splitSelectedQueues,
   unknownQueuesNotices,
 } from "../src/lib/adminQueues";
 
@@ -52,5 +54,29 @@ describe("unknownQueuesNotices", () => {
     expect(unknownQueuesNotices(["Vieja"])).toEqual([
       { kind: "error", text: "Cola inexistente en Znuny: Vieja" },
     ]);
+  });
+});
+
+describe("splitSelectedQueues", () => {
+  const catalog = [
+    { name: "CCTV", valid: true },
+    { name: "Vieja", valid: false },
+  ];
+  it("separa colas válidas de inexistentes o inválidas", () => {
+    expect(splitSelectedQueues(["CCTV", "Renombrada", "Vieja"], catalog)).toEqual({
+      known: ["CCTV"],
+      unknown: ["Renombrada", "Vieja"],
+    });
+  });
+  it("sin catálogo (Znuny caído) todo cuenta como existente", () => {
+    expect(splitSelectedQueues(["X"], null)).toEqual({ known: ["X"], unknown: [] });
+  });
+  it("quitar la inexistente deja un payload válido", () => {
+    const { unknown } = splitSelectedQueues(["CCTV", "Renombrada"], catalog);
+    const afterRemoval = mergeKnownSelection(unknown.filter((q) => q !== "Renombrada"), ["CCTV"]);
+    expect(buildQueuesPayload("specific", afterRemoval)).toEqual({ ok: true, value: ["CCTV"] });
+  });
+  it("mergeKnownSelection conserva las inexistentes no quitadas", () => {
+    expect(mergeKnownSelection(["Renombrada"], ["CCTV"])).toEqual(["Renombrada", "CCTV"]);
   });
 });

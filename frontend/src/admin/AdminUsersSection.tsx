@@ -16,9 +16,11 @@ import { PasswordInput } from "../components/PasswordInput";
 import { QueueTreeSelect } from "../components/QueueTreeSelect";
 import {
   buildQueuesPayload,
+  mergeKnownSelection,
   modeFromAllowedQueues,
   QueueAccessMode,
   queueCellFor,
+  splitSelectedQueues,
   unknownQueuesNotices,
 } from "../lib/adminQueues";
 import { AdminUserSummary, Catalog, Role } from "../types";
@@ -102,6 +104,7 @@ const QUEUE_MODE_OPTIONS: { mode: QueueAccessMode; label: string }[] = [
 ];
 
 function QueueAccessField({ mode, selected, catalogQueues, onModeChange, onSelectedChange }: QueueAccessFieldProps) {
+  const { known, unknown } = splitSelectedQueues(selected, catalogQueues);
   return (
     <div className="block text-sm text-[color:var(--text-secondary)]">
       Colas de Znuny
@@ -119,13 +122,34 @@ function QueueAccessField({ mode, selected, catalogQueues, onModeChange, onSelec
           </label>
         ))}
       </div>
+      {mode === "specific" && unknown.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {unknown.map((name) => (
+            <span
+              key={name}
+              className="inline-flex items-center gap-1 rounded border border-[#FF4D6D]/40 px-2 py-0.5 text-xs text-[#FF718A]"
+            >
+              Cola inexistente: {name}
+              <button
+                type="button"
+                onClick={() => onSelectedChange(selected.filter((q) => q !== name))}
+                aria-label={`Quitar ${name}`}
+                title="Quitar"
+                className="hover:text-white"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       {mode === "specific" &&
         (catalogQueues ? (
           <QueueTreeSelect
             multiple
             queues={catalogQueues}
-            value={selected}
-            onChange={onSelectedChange}
+            value={known}
+            onChange={(next) => onSelectedChange(mergeKnownSelection(unknown, next))}
             placeholder="Elegí las colas"
             className="mt-2"
           />
@@ -270,7 +294,8 @@ export function AdminUsersSection() {
         email: createForm.email,
         password: createForm.password,
         role: createForm.role,
-        allowedDepartments: createForm.allowedDepartments,
+        // Si osTicket no respondió, no se envía: el backend no debe revalidar contra una base caída.
+        ...(departmentsError ? {} : { allowedDepartments: createForm.allowedDepartments }),
         allowedQueues: queuesPayload.value,
       });
       setCreateForm(null);
@@ -327,7 +352,8 @@ export function AdminUsersSection() {
       await updateUserProfile(editForm.originalUsername, {
         username: editForm.username,
         email: editForm.email,
-        allowedDepartments: editForm.allowedDepartments,
+        // Con la lista caída el admin no puede cambiarlos: no se envía y se conservan los actuales.
+        ...(departmentsError ? {} : { allowedDepartments: editForm.allowedDepartments }),
         allowedQueues: queuesPayload.value,
       });
       setEditForm(null);
@@ -652,11 +678,21 @@ export function AdminUsersSection() {
             <div className="block text-sm text-[color:var(--text-secondary)]">
               Departamentos (histórico osTicket)
               {departmentsError && <span className="mt-1 block text-xs text-[#FF718A]">{departmentsError}</span>}
-              <DepartmentsCheckboxGroup
-                departments={departments}
-                selected={editForm.allowedDepartments}
-                onChange={(next) => setEditForm({ ...editForm, allowedDepartments: next })}
-              />
+              {departmentsError ? (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {editForm.allowedDepartments.length === 0 ? (
+                    <Badge>Todos</Badge>
+                  ) : (
+                    editForm.allowedDepartments.map((name) => <Badge key={name}>{name}</Badge>)
+                  )}
+                </div>
+              ) : (
+                <DepartmentsCheckboxGroup
+                  departments={departments}
+                  selected={editForm.allowedDepartments}
+                  onChange={(next) => setEditForm({ ...editForm, allowedDepartments: next })}
+                />
+              )}
             </div>
 
             <QueueAccessField
