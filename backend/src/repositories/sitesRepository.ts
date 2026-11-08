@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { normalizeName } from "../lib/normalizeName";
+import { DATA_DIR, SEED_DIR } from "../lib/dataDir";
 import { Site } from "../types";
 
 /**
@@ -26,9 +27,8 @@ import { Site } from "../types";
  * en el sentido de inventarlo: solo puede asignar coordenadas a un nombre
  * que ya exista en vivo en ost_list_items (ver routes/admin.ts).
  */
-const DATA_DIR = path.join(__dirname, "..", "data");
 const METADATA_PATH = path.join(DATA_DIR, "site-metadata.json");
-const SEED_PATH = path.join(DATA_DIR, "site-metadata.seed.json");
+const SEED_PATH = path.join(SEED_DIR, "site-metadata.seed.json");
 
 interface RawSite {
   name: string;

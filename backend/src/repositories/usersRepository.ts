@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 import { PublicUser, Role } from "../types";
+import { DATA_DIR, SEED_DIR } from "../lib/dataDir";
 
 /**
  * Capa de acceso a datos de usuarios/roles. Mismo patrón que
@@ -10,9 +11,8 @@ import { PublicUser, Role } from "../types";
  * /admin/sites (sección "Usuarios"). No hay base de datos propia para esto
  * — la de MySQL es de solo lectura y de osTicket, no nuestra.
  */
-const DATA_DIR = path.join(__dirname, "..", "data");
 const USERS_PATH = path.join(DATA_DIR, "users.json");
-const SEED_PATH = path.join(DATA_DIR, "users.seed.json");
+const SEED_PATH = path.join(SEED_DIR, "users.seed.json");
 const PASSWORD_HASH_COST = 12; // mismo costo que scripts/hashPassword.ts
 
 interface StoredUser {

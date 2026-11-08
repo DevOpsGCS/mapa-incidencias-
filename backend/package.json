@@ -8,6 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json && node scripts/copy-assets.js",
     "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:it": "cross-env ZNUNY_IT=1 vitest run test/integration",
     "hash-password": "tsx src/scripts/hashPassword.ts"
   },
   "dependencies": {
@@ -29,7 +31,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.14.9",
     "@types/nodemailer": "^8.0.1",
+    "cross-env": "^7.0.3",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vitest": "^2.1.9"
   }
 }
