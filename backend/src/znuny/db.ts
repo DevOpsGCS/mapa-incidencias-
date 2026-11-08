@@ -15,6 +15,8 @@ const UNAVAILABLE_CODES = new Set([
   "ECONNREFUSED",
   "ETIMEDOUT",
   "ECONNRESET",
+  "ENOTFOUND",
+  "EHOSTUNREACH",
   "PROTOCOL_CONNECTION_LOST",
   "ER_ACCESS_DENIED_ERROR",
 ]);
@@ -30,7 +32,8 @@ function getPool(): mysql.Pool {
   if (!pool) {
     pool = mysql.createPool({
       host: process.env.ZNUNY_DB_HOST,
-      port: Number(process.env.ZNUNY_DB_PORT ?? 3306),
+      // `|| 3306`: también cubre ZNUNY_DB_PORT vacío ("" -> 0) o no numérico (NaN).
+      port: Number(process.env.ZNUNY_DB_PORT) || 3306,
       user: process.env.ZNUNY_DB_USER,
       password: process.env.ZNUNY_DB_PASSWORD,
       database: process.env.ZNUNY_DB_NAME,

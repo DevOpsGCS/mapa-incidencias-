@@ -50,33 +50,3 @@ export interface Site {
   /** Clave de Ubicacion en Znuny; null si el sitio solo existe en el histórico osTicket. */
   znunyKey: string | null;
 }
-
-export interface SiteStat {
-  siteId: string;
-  siteName: string;
-  total: number;
-  open: number;
-  urgenteOpen: number;
-}
-
-export interface TrendPoint {
-  date: string;
-  count: number;
-}
-
-export interface TicketStats {
-  total: number;
-  byStatus: Record<LegacyTicketStatus, number>;
-  byPriority: Record<LegacyTicketPriority, number>;
-  bySite: SiteStat[];
-  totalOpen: number;
-  totalUrgente: number;
-  resolvedToday: number;
-  trend: TrendPoint[];
-}
-
-export interface TicketFilters {
-  siteId?: string;
-  status?: LegacyTicketStatus;
-  priority?: LegacyTicketPriority;
-}

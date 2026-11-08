@@ -25,8 +25,9 @@ import { migrateSitesV2, RawSite, SitesFileV2 } from "../migrations/sitesV2";
  * el proceso arranca y ese archivo todavía no existe en el servidor).
  *
  * El endpoint POST /api/admin/sites, aun así, nunca puede "crear" un sitio
- * en el sentido de inventarlo: solo puede asignar coordenadas a un nombre
- * que ya exista en vivo en ost_list_items (ver routes/admin.ts).
+ * en el sentido de inventarlo: solo puede asignar coordenadas a una clave
+ * que ya exista en vivo como opción del campo Ubicacion de Znuny
+ * (getSiteOptions, ver routes/admin.ts).
  */
 const METADATA_PATH = path.join(DATA_DIR, "site-metadata.json");
 const SEED_PATH = path.join(SEED_DIR, "site-metadata.seed.json");

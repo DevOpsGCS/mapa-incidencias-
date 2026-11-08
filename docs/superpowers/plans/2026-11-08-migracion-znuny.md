@@ -759,6 +759,7 @@ Requiere el OK explícito del usuario antes de cada paso que toque el servidor.
   - verificar que el `.tgz` contiene `users.json` y `site-metadata.json`.
 - [ ] **Paso 3:** configuración.
   - Agregar a `backend/.env`: `ZNUNY_BASE_URL=https://mesadeservicio.gcslatam.com/znuny`, `DATA_DIR=/home/ubuntu/mapa-incidencias-data` y `OSTICKET_SOURCE=live`.
+  - Verificar que las 5 variables `ZNUNY_DB_*` ya están (se cargaron en prod el 8-nov, con `ZNUNY_DB_PORT=3307`), **sin imprimir valores**: `grep -c '^ZNUNY_DB_' backend/.env` → `5`. Si da otro número, revisar los nombres con `grep -o '^ZNUNY_DB_[A-Z]*' backend/.env` (solo nombres).
   - `systemctl is-active znuny-tunnel` → `active`.
 - [ ] **Paso 4:** actualizar el código y compilar.
   - Si `git pull` se bloquea por `frontend/package-lock.json`, hacer `git stash` de ese archivo.
@@ -766,9 +767,12 @@ Requiere el OK explícito del usuario antes de cada paso que toque el servidor.
   - `cd backend && npm ci && npm run build`.
   - `cd ../frontend && npm ci && npm run build`.
   - `frontend/.env.production` no se toca.
+- [ ] **Paso 4b:** confirmar cómo corre el proceso antes de reiniciarlo.
+  - `pm2 describe backend`: el `script path` debe terminar en `dist/index.js` y el `exec mode` debe ser `fork` (en `cluster` cada instancia correría sus propios pollers y duplicaría eventos). Si no coincide, frenar y revisar con el usuario.
 - [ ] **Paso 5:** reiniciar y verificar.
   - `pm2 restart backend`.
   - `pm2 logs backend --lines 50` debe mostrar la copia a `DATA_DIR`, las migraciones con sus `.bak` y ningún error.
+  - En esos logs también: `API + socket.io escuchando en ...` y los dos pollers arrancados, `[znuny-poller] tickets iniciado (lastId=...)` y `[znuny-poller] estados iniciado (lastHistoryId=...)`. Un `error en el ciclo` repetido indica túnel o credenciales `ZNUNY_DB_*` mal.
   - `curl -s localhost:4000/api/health` → `ok`.
   - En el navegador: login de admin, unos 77 tickets y el mapa correcto.
 - [ ] **Paso 6:** el usuario asigna colas a los 8 usuarios restringidos desde el panel.
@@ -776,4 +780,8 @@ Requiere el OK explícito del usuario antes de cada paso que toque el servidor.
   - `cd backend && node dist/scripts/osticketSnapshot.js` debe imprimir un total igual al `COUNT`.
   - Poner `OSTICKET_SOURCE=snapshot` en `.env` y hacer `pm2 restart backend`.
   - La pestaña Histórico debe mostrar "Datos congelados al 09/11/2026".
+- [ ] **Paso 8 (antes de apagar osTicket):** confirmar que `/api/admin/departments` responde en modo snapshot.
+  - Va después del Paso 7 porque recién ahí el backend corre con `OSTICKET_SOURCE=snapshot`; osTicket **no** se apaga hasta que este paso dé bien.
+  - Con sesión de admin, en el panel → Usuarios → "Crear usuario": la lista de departamentos debe aparecer (sin el aviso "osTicket no disponible"). Equivalente: en las DevTools del navegador logueado, `fetch("/api/admin/departments").then(r => r.status)` → `200` con la lista de departamentos del snapshot.
+  - Si da 503, el snapshot no está en `DATA_DIR` (`osticket-snapshot.json`): no apagar osTicket.
 - [ ] **Rollback:** `git checkout 5a58e97`, build y `pm2 restart backend`. Los archivos originales siguen en `dist/data/` y en el `.tgz` de respaldo.

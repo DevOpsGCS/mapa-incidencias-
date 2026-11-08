@@ -1,26 +1,10 @@
 import { readOnlyQuery } from "./db";
-import {
-  LegacyTicket,
-  TicketFilters,
-  LegacyTicketPriority,
-  TicketStats,
-  LegacyTicketStatus,
-} from "../../types";
+import { LegacyTicket, LegacyTicketPriority, LegacyTicketStatus } from "../../types";
 import { sitesRepository } from "../../repositories/sitesRepository";
-
-const PRIORITIES: LegacyTicketPriority[] = ["low", "normal", "high", "urgente"];
-const STATUSES: LegacyTicketStatus[] = ["open", "resolved", "closed"];
-const TREND_DAYS = 30;
 
 // Sin barra final, para no terminar con "//scp" al armar la URL. Si no está
 // configurada, los tickets simplemente no llevan link a osTicket (ver mapRow).
 const OSTICKET_BASE_URL = process.env.OSTICKET_BASE_URL?.replace(/\/+$/, "");
-
-// Único lugar que sabe cuál es, dentro de nuestro vocabulario ya traducido
-// (LegacyTicketPriority), el valor que cuenta como "urgente" para totalUrgente y
-// urgenteOpen — así ambos cálculos quedan atados a la misma fuente en vez
-// de repetir el literal "urgente" en cada comparación.
-const URGENTE_PRIORITY: LegacyTicketPriority = "urgente";
 
 // osTicket guarda la PALABRA de cada prioridad/estado en ost_ticket_priority
 // / ost_ticket_status — nunca asumimos qué ID corresponde a cuál (eso fue
@@ -267,9 +251,8 @@ function mapRow(row: TicketRow, ctx: MapRowContext): LegacyTicket | null {
   };
 }
 
-// WHERE 1=1 es a propósito: deja que tanto fetchAllTickets como el poller de
-// liveSimulator.ts puedan agregar "AND ..." sin duplicar lógica de armado de
-// SQL. El filtro de estado (excluir Archivado/Borrado) ya NO va acá: pasa a
+// WHERE 1=1 es a propósito: deja que fetchAllTickets agregue "AND ..." sin
+// casos especiales en el armado del SQL. El filtro de estado (excluir Archivado/Borrado) ya NO va acá: pasa a
 // resolverse en JS vía loadStatusAppById, en vivo contra ost_ticket_status.
 const TICKETS_SELECT = `
   SELECT
@@ -317,7 +300,7 @@ async function loadMapRowContext(): Promise<MapRowContext> {
 /**
  * allowedDepartments filtra en el ORIGEN (WHERE d.name IN (...)), no
  * post-filtrado en JS — es el scoping de seguridad de allowedDepartments
- * (ver usersRepository.getAllowedDepartments), separado de TicketFilters
+ * (ver usersRepository.getAllowedDepartments), separado de cualquier filtro del cliente
  * (los filtros que sí controla el cliente vía query string).
  */
 export async function fetchAllTickets(allowedDepartments?: string[] | null): Promise<LegacyTicket[]> {
@@ -341,146 +324,6 @@ export async function fetchAllTickets(allowedDepartments?: string[] | null): Pro
   }
   return tickets;
 }
-
-function matchesFilters(ticket: LegacyTicket, filters: TicketFilters): boolean {
-  if (filters.siteId && ticket.siteId !== filters.siteId) return false;
-  if (filters.status && ticket.status !== filters.status) return false;
-  if (filters.priority && ticket.priority !== filters.priority) return false;
-  return true;
-}
-
-function isOpenStatus(status: LegacyTicketStatus): boolean {
-  return status === "open";
-}
-
-function isToday(isoDate: string): boolean {
-  const date = new Date(isoDate);
-  const now = new Date();
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  );
-}
-
-function dateKey(isoDate: string): string {
-  return isoDate.slice(0, 10); // YYYY-MM-DD
-}
-
-/**
- * Capa de acceso a datos de tickets. Lee de la base real de osTicket
- * (solo lectura, vía readOnlyQuery) y traduce su esquema al modelo que ya
- * consume el frontend — rutas de Express y frontend no cambiaron.
- */
-export interface TicketsRepository {
-  findAll(filters?: TicketFilters, allowedDepartments?: string[] | null): Promise<LegacyTicket[]>;
-  getStats(allowedDepartments?: string[] | null): Promise<TicketStats>;
-}
-
-class MySqlTicketsRepository implements TicketsRepository {
-  async findAll(filters: TicketFilters = {}, allowedDepartments: string[] | null = null): Promise<LegacyTicket[]> {
-    const tickets = await fetchAllTickets(allowedDepartments);
-    return tickets.filter((ticket) => matchesFilters(ticket, filters));
-  }
-
-  async getStats(allowedDepartments: string[] | null = null): Promise<TicketStats> {
-    const [tickets, sites] = await Promise.all([
-      fetchAllTickets(allowedDepartments),
-      Promise.resolve(sitesRepository.findAll()),
-    ]);
-
-    const byStatus = STATUSES.reduce((acc, status) => {
-      acc[status] = 0;
-      return acc;
-    }, {} as Record<LegacyTicketStatus, number>);
-
-    const byPriority = PRIORITIES.reduce((acc, priority) => {
-      acc[priority] = 0;
-      return acc;
-    }, {} as Record<LegacyTicketPriority, number>);
-
-    const bySiteMap = new Map<
-      string,
-      { total: number; open: number; urgenteOpen: number }
-    >();
-    sites.forEach((site) => bySiteMap.set(site.id, { total: 0, open: 0, urgenteOpen: 0 }));
-
-    let totalOpen = 0;
-    let totalUrgente = 0;
-    let resolvedToday = 0;
-
-    const trendMap = new Map<string, number>();
-    for (let i = 0; i < TREND_DAYS; i += 1) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      trendMap.set(dateKey(d.toISOString()), 0);
-    }
-
-    for (const ticket of tickets) {
-      byStatus[ticket.status] += 1;
-      byPriority[ticket.priority] += 1;
-
-      const siteEntry = bySiteMap.get(ticket.siteId);
-      if (siteEntry) {
-        siteEntry.total += 1;
-        if (isOpenStatus(ticket.status)) {
-          siteEntry.open += 1;
-          if (ticket.priority === URGENTE_PRIORITY) siteEntry.urgenteOpen += 1;
-        }
-      }
-
-      if (isOpenStatus(ticket.status)) {
-        totalOpen += 1;
-        if (ticket.priority === URGENTE_PRIORITY) totalUrgente += 1;
-      }
-
-      if (ticket.status === "resolved" && isToday(ticket.updatedAt)) {
-        resolvedToday += 1;
-      }
-
-      const key = dateKey(ticket.createdAt);
-      if (trendMap.has(key)) {
-        trendMap.set(key, (trendMap.get(key) ?? 0) + 1);
-      }
-    }
-
-    const bySite = sites.map((site) => {
-      const entry = bySiteMap.get(site.id) ?? { total: 0, open: 0, urgenteOpen: 0 };
-      return {
-        siteId: site.id,
-        siteName: site.name,
-        total: entry.total,
-        open: entry.open,
-        urgenteOpen: entry.urgenteOpen,
-      };
-    });
-
-    const trend = Array.from(trendMap.entries())
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .map(([date, count]) => ({ date, count }));
-
-    return {
-      total: tickets.length,
-      byStatus,
-      byPriority,
-      bySite,
-      totalOpen,
-      totalUrgente,
-      resolvedToday,
-      trend,
-    };
-  }
-}
-
-export const ticketsRepository: TicketsRepository = new MySqlTicketsRepository();
-
-// Reutilizados por el poller de socket.io (sockets/liveSimulator.ts) para no
-// duplicar la lógica de mapeo DB -> LegacyTicket. STATUS_NAME_TO_APP también la usa
-// sockets/ticketEventsPoller.ts, para traducir por PALABRA (nunca por ID) el
-// estado que loguea ost_thread_event — misma regla de oro que en el resto
-// del archivo, una sola fuente de verdad para esa traducción.
-export { TICKETS_SELECT, mapRow as mapTicketRow, loadMapRowContext, mysqlDatetimeToIso, STATUS_NAME_TO_APP };
-export type { TicketRow, MapRowContext };
 
 /**
  * Cuántos tickets debería exportar el snapshot: mismo criterio de estados que
