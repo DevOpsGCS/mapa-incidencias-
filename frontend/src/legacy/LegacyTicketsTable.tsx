@@ -1,7 +1,7 @@
 import { IconExternalLink } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { LegacySlaBar } from "./LegacySlaBar";
-import { DepartmentIcon } from "../lib/departmentIcons";
+import { DepartmentIcon } from "./legacyDepartmentIcons";
 import {
   formatDateTime,
   PRIORITY_DOT_COLORS,

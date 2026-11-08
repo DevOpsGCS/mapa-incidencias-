@@ -1,49 +1,60 @@
-import { TicketStats } from "../types";
+import { QueueTreeSelect } from "./QueueTreeSelect";
+import { ZnunyStats } from "../lib/znunyStats";
+import { Catalog } from "../types";
 
 interface KpiDockProps {
-  stats: TicketStats;
-  department: string;
-  departments: string[];
-  onDepartmentChange: (department: string) => void;
+  stats: ZnunyStats;
+  catalog: Catalog;
+  queue: string | null;
+  onQueueChange: (queue: string | null) => void;
   isPending?: boolean;
 }
 
-export function KpiDock({ stats, department, departments, onDepartmentChange, isPending = false }: KpiDockProps) {
-  const items: { label: string; value: number; color: string; alarm?: boolean }[] = [
+const TREND_WINDOW = 7;
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Tickets creados en los últimos 7 días y diferencia contra los 7 anteriores. */
+function weekTrend(trend: ZnunyStats["trend"]): { current: number; delta: number } {
+  const sum = (points: ZnunyStats["trend"]) => points.reduce((acc, p) => acc + p.count, 0);
+  const current = sum(trend.slice(-TREND_WINDOW));
+  const previous = sum(trend.slice(-TREND_WINDOW * 2, -TREND_WINDOW));
+  return { current, delta: current - previous };
+}
+
+export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = false }: KpiDockProps) {
+  const topName = catalog.priorities.find((p) => p.id === catalog.topPriorityId)?.name ?? "Prioridad máxima";
+  const { current, delta } = weekTrend(stats.trend);
+  const items: { label: string; value: number; color: string; alarm?: boolean; hint?: string }[] = [
     { label: "Abiertos", value: stats.totalOpen, color: "var(--blue)" },
     {
-      label: "Urgentes",
-      value: stats.totalUrgente,
+      label: `${capitalize(topName)} abiertos`,
+      value: stats.topPriorityOpen,
       color: "var(--red)",
-      alarm: stats.totalUrgente > 0,
+      alarm: stats.topPriorityOpen > 0,
     },
-    { label: "Total", value: stats.total, color: "var(--cyan)" },
+    { label: "Cerrados hoy", value: stats.closedToday, color: "var(--green)" },
+    {
+      label: `Tendencia (${TREND_WINDOW} d)`,
+      value: current,
+      color: "var(--cyan)",
+      hint: `${delta > 0 ? "▲ +" : delta < 0 ? "▼ " : "= "}${delta} vs. 7 d previos`,
+    },
   ];
 
   return (
     <div className="hud-scale fixed left-5 top-[78px] z-10 flex w-[190px] flex-col gap-2">
       <div className="glass-panel px-3.5 py-3">
         <div className="flex items-center justify-between">
-          <p className="mono-label text-[10px] text-[color:var(--muted)]">Departamento</p>
+          <p className="mono-label text-[10px] text-[color:var(--muted)]">Cola</p>
           {/* Mismo texto/estilo que el "Cargando dashboard..." de App.tsx durante la carga inicial. */}
           {isPending && (
             <p className="mono-label text-[10px] text-[color:var(--muted)]">Cargando...</p>
           )}
         </div>
-        <select
-          value={department}
-          onChange={(event) => onDepartmentChange(event.target.value)}
-          className="mt-1.5 w-full rounded-md border border-[color:var(--glass-border)] bg-[#0b1220] px-2 py-1 text-xs text-[color:var(--text)] outline-none focus:border-[color:var(--cyan)]"
-        >
-          <option value="all" className="bg-[#0b1220] text-[color:var(--text)]">
-            Todos
-          </option>
-          {departments.map((name) => (
-            <option key={name} value={name} className="bg-[#0b1220] text-[color:var(--text)]">
-              {name}
-            </option>
-          ))}
-        </select>
+        <QueueTreeSelect className="mt-1.5" queues={catalog.queues} value={queue} onChange={onQueueChange} />
       </div>
       {items.map((item) => (
         <div
@@ -59,6 +70,7 @@ export function KpiDock({ stats, department, departments, onDepartmentChange, is
           >
             {item.value}
           </p>
+          {item.hint && <p className="mono-label text-[9px] text-[color:var(--muted-2)]">{item.hint}</p>}
         </div>
       ))}
     </div>

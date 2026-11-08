@@ -1,19 +1,20 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { CHART_CHROME, STATUS_CHART_COLORS, STATUS_LABELS } from "../lib/labels";
-import { TicketStats } from "../types";
+import { CHART_CHROME } from "../lib/labels";
+import { stateTypeColor } from "../lib/znunyColors";
+import { ZnunyStats } from "../lib/znunyStats";
+import { StateType } from "../types";
 
 interface StatusChartProps {
-  stats: TicketStats;
+  stats: ZnunyStats;
 }
 
+const STATE_TYPE_ORDER: Record<StateType, number> = { new: 0, open: 1, pending: 2, closed: 3 };
+
 export function StatusChart({ stats }: StatusChartProps) {
-  const data = (Object.keys(stats.byStatus) as (keyof typeof stats.byStatus)[]).map(
-    (status) => ({
-      status,
-      label: STATUS_LABELS[status],
-      count: stats.byStatus[status],
-    })
-  );
+  // Estados reales de Znuny (nombres en vivo), ordenados por tipo y luego por nombre.
+  const data = [...stats.byState]
+    .sort((a, b) => STATE_TYPE_ORDER[a.stateType] - STATE_TYPE_ORDER[b.stateType] || a.name.localeCompare(b.name))
+    .map((entry) => ({ label: entry.name, count: entry.count, stateType: entry.stateType }));
 
   return (
     <div className="glass-panel p-4">
@@ -47,7 +48,7 @@ export function StatusChart({ stats }: StatusChartProps) {
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={48}>
               {data.map((entry) => (
-                <Cell key={entry.status} fill={STATUS_CHART_COLORS[entry.status]} />
+                <Cell key={entry.label} fill={stateTypeColor(entry.stateType)} />
               ))}
             </Bar>
           </BarChart>

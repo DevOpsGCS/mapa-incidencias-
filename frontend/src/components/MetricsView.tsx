@@ -1,15 +1,17 @@
 import { StatusChart } from "./StatusChart";
 import { TicketsTable } from "./TicketsTable";
 import { TrendChart } from "./TrendChart";
-import { Site, Ticket, TicketStats } from "../types";
+import { ZnunyStats } from "../lib/znunyStats";
+import { Catalog, Site, Ticket } from "../types";
 
 interface MetricsViewProps {
   tickets: Ticket[];
   sites: Site[];
-  stats: TicketStats;
+  stats: ZnunyStats;
+  catalog: Catalog;
 }
 
-export function MetricsView({ tickets, sites, stats }: MetricsViewProps) {
+export function MetricsView({ tickets, sites, stats, catalog }: MetricsViewProps) {
   return (
     <div className="thin-scroll h-full overflow-y-auto px-5 pb-6 pt-[92px]">
       <div className="mx-auto flex max-w-screen-2xl flex-col gap-4">
@@ -19,7 +21,7 @@ export function MetricsView({ tickets, sites, stats }: MetricsViewProps) {
         </section>
 
         <section>
-          <TicketsTable tickets={tickets} sites={sites} />
+          <TicketsTable tickets={tickets} sites={sites} catalog={catalog} />
         </section>
       </div>
     </div>

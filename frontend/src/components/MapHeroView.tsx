@@ -3,69 +3,71 @@ import { DetailDrawer } from "./DetailDrawer";
 import { KpiDock } from "./KpiDock";
 import { MapView } from "./MapView";
 import { SiteRail } from "./SiteRail";
-import { computeStats } from "../lib/computeStats";
-import { computeSiteDepartmentBreakdown, computeSitePriorityPresence } from "../lib/siteDominance";
-import { Site, Ticket } from "../types";
+import { buildPriorityRankMap } from "../lib/priorityRank";
+import { matchesQueueFilter } from "../lib/queueFilter";
+import { computeSitePriorityPresence, computeSiteQueueBreakdown } from "../lib/siteDominance";
+import { priorityColor } from "../lib/znunyColors";
+import { computeZnunyStats } from "../lib/znunyStats";
+import { Catalog, Site, Ticket } from "../types";
 
 interface MapHeroViewProps {
   sites: Site[];
   tickets: Ticket[];
+  catalog: Catalog;
   selectedSite: Site | null;
   onSelectSite: (site: Site | null) => void;
 }
 
 const APPLY_DELAY_MS = 400;
 
-export function MapHeroView({ sites, tickets, selectedSite, onSelectSite }: MapHeroViewProps) {
-  // department: el filtro que efectivamente se usa para recalcular KPIs/
-  // marcadores. selectValue: lo que el <select> muestra al toque, para que
+export function MapHeroView({ sites, tickets, catalog, selectedSite, onSelectSite }: MapHeroViewProps) {
+  // queue: el filtro que efectivamente se usa para recalcular KPIs/
+  // marcadores. selectValue: lo que el selector muestra al toque, para que
   // no "vuelva" a la opción anterior mientras el delay corre.
-  const [department, setDepartment] = useState<string>("all");
-  const [selectValue, setSelectValue] = useState<string>("all");
+  const [queue, setQueue] = useState<string | null>(null);
+  const [selectValue, setSelectValue] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const applyTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => () => clearTimeout(applyTimeoutRef.current), []);
 
-  // El recálculo real (computeStats/dominancia) sobre el volumen actual de
+  // El recálculo real (stats/dominancia) sobre el volumen actual de
   // tickets es prácticamente instantáneo — tan rápido que un
   // indicador "de verdad" (ej. useTransition) nunca llega a pintarse antes
   // de que termine. Este delay es deliberado, solo para que el "Cargando..."
   // sea visible una fracción de segundo antes de aplicar el filtro.
-  const handleDepartmentChange = (next: string) => {
+  const handleQueueChange = (next: string | null) => {
     setSelectValue(next);
     setIsPending(true);
     clearTimeout(applyTimeoutRef.current);
     applyTimeoutRef.current = setTimeout(() => {
-      setDepartment(next);
+      setQueue(next);
       setIsPending(false);
     }, APPLY_DELAY_MS);
   };
 
-  // En vivo a partir de los tickets ya cargados (mismo criterio del proyecto:
-  // nunca hardcodear la lista de departamentos) — así solo aparecen opciones
-  // que el usuario autenticado realmente puede ver.
-  const departments = useMemo(() => {
-    return Array.from(new Set(tickets.map((ticket) => ticket.department))).sort((a, b) =>
-      a.localeCompare(b)
-    );
-  }, [tickets]);
+  // Elegir una cola incluye sus subcolas (ver matchesQueueFilter).
+  const filteredTickets = useMemo(
+    () => tickets.filter((ticket) => matchesQueueFilter(ticket.queue, queue)),
+    [tickets, queue]
+  );
 
-  const filteredTickets = useMemo(() => {
-    return department === "all" ? tickets : tickets.filter((ticket) => ticket.department === department);
-  }, [tickets, department]);
+  const rankById = useMemo(() => buildPriorityRankMap(catalog), [catalog]);
 
   // KPIs, marcadores y detalle de sitio se recalculan sobre el set filtrado
   // — mismo patrón que ya usa useDashboardData para no depender de un
   // round-trip al backend en cada cambio de filtro.
-  const stats = useMemo(() => computeStats(filteredTickets, sites), [filteredTickets, sites]);
-  const departmentBreakdownBySite = useMemo(
-    () => computeSiteDepartmentBreakdown(filteredTickets),
+  const stats = useMemo(
+    () => computeZnunyStats(filteredTickets, sites, catalog.topPriorityId),
+    [filteredTickets, sites, catalog.topPriorityId]
+  );
+  const queueBreakdownBySite = useMemo(
+    () => computeSiteQueueBreakdown(filteredTickets),
     [filteredTickets]
   );
   const sitePriorityPresenceById = useMemo(
-    () => computeSitePriorityPresence(filteredTickets),
-    [filteredTickets]
+    () => computeSitePriorityPresence(filteredTickets, rankById),
+    [filteredTickets, rankById]
   );
   const siteStatsById = useMemo(() => {
     const map = new Map<string, (typeof stats.bySite)[number]>();
@@ -82,7 +84,7 @@ export function MapHeroView({ sites, tickets, selectedSite, onSelectSite }: MapH
       <div className="absolute inset-0 z-0">
         <MapView
           sites={sites}
-          departmentBreakdownBySite={departmentBreakdownBySite}
+          queueBreakdownBySite={queueBreakdownBySite}
           sitePriorityPresenceById={sitePriorityPresenceById}
           selectedSiteId={selectedSite?.id}
           onSelectSite={onSelectSite}
@@ -91,9 +93,9 @@ export function MapHeroView({ sites, tickets, selectedSite, onSelectSite }: MapH
 
       <KpiDock
         stats={stats}
-        department={selectValue}
-        departments={departments}
-        onDepartmentChange={handleDepartmentChange}
+        catalog={catalog}
+        queue={selectValue}
+        onQueueChange={handleQueueChange}
         isPending={isPending}
       />
       <SiteRail
@@ -107,22 +109,23 @@ export function MapHeroView({ sites, tickets, selectedSite, onSelectSite }: MapH
         <DetailDrawer
           site={selectedSite}
           tickets={filteredTickets}
+          catalog={catalog}
           onClose={() => onSelectSite(null)}
         />
       ) : (
-        <MapLegend />
+        <MapLegend catalog={catalog} />
       )}
     </div>
   );
 }
 
-function MapLegend() {
+function MapLegend({ catalog }: { catalog: Catalog }) {
+  const priorities = [...catalog.priorities].sort((a, b) => a.rank - b.rank);
   return (
     <div className="hud-scale glass-panel fixed bottom-5 left-5 z-10 px-3.5 py-3 text-xs text-[color:var(--muted)]">
-      <LegendRow color="var(--fill-danger)" label="Urgente" />
-      <LegendRow color="var(--fill-warning)" label="Alta" />
-      <LegendRow color="var(--fill-accent)" label="Normal" />
-      <LegendRow color="var(--fill-success)" label="Baja" />
+      {priorities.map((priority) => (
+        <LegendRow key={priority.id} color={priorityColor(priority.rank)} label={priority.name} />
+      ))}
       <LegendRow color="var(--border)" label="Sin tickets de esa prioridad" />
       <p className="mono-label mt-2 text-[9.5px] text-[color:var(--muted-2)]">
         Clic en un marcador o sitio para ver detalle

@@ -3,12 +3,12 @@ import { CountryBoundary } from "./CountryBoundary";
 import { MapZoomControls } from "./MapZoomControls";
 import { countryFitOptions, EL_SALVADOR_BOUNDS } from "../lib/mapFraming";
 import { buildSiteMarkerIcon } from "../lib/siteMarkerIcon";
-import { DepartmentCount, PriorityPresence } from "../lib/siteDominance";
+import { EMPTY_PRESENCE, PriorityPresence, QueueCount } from "../lib/siteDominance";
 import { Site } from "../types";
 
 interface MapViewProps {
   sites: Site[];
-  departmentBreakdownBySite: Map<string, DepartmentCount[]>;
+  queueBreakdownBySite: Map<string, QueueCount[]>;
   sitePriorityPresenceById: Map<string, PriorityPresence>;
   selectedSiteId?: string;
   onSelectSite: (site: Site) => void;
@@ -19,16 +19,9 @@ const CARTO_TILE_URL = `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r
   CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ""
 }`;
 
-const EMPTY_PRESENCE: PriorityPresence = {
-  low: false,
-  normal: false,
-  high: false,
-  urgente: false,
-};
-
 export function MapView({
   sites,
-  departmentBreakdownBySite,
+  queueBreakdownBySite,
   sitePriorityPresenceById,
   selectedSiteId,
   onSelectSite,
@@ -52,7 +45,7 @@ export function MapView({
           son necesarios en navegadores de TV, que no tienen rueda ni pinch. */}
       <MapZoomControls homeBounds={EL_SALVADOR_BOUNDS} />
       {sites.map((site) => {
-        const departmentCounts = departmentBreakdownBySite.get(site.id) ?? [];
+        const queueCounts = queueBreakdownBySite.get(site.id) ?? [];
         const priorityPresence = sitePriorityPresenceById.get(site.id) ?? EMPTY_PRESENCE;
         const isSelected = site.id === selectedSiteId;
 
@@ -60,7 +53,7 @@ export function MapView({
           <Marker
             key={site.id}
             position={[site.lat, site.lng]}
-            icon={buildSiteMarkerIcon(departmentCounts, priorityPresence, isSelected, site.id)}
+            icon={buildSiteMarkerIcon(queueCounts, priorityPresence, isSelected, site.id)}
             eventHandlers={{ click: () => onSelectSite(site) }}
           />
         );

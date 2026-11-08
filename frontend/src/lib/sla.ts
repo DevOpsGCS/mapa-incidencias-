@@ -1,16 +1,17 @@
 import { Ticket } from "../types";
+import { isOpenStateType } from "./znunyColors";
 
 /**
  * % de SLA consumido (tiempo transcurrido / tiempo total hasta el
- * vencimiento), 0-100. Solo tiene sentido para tickets abiertos: uno
+ * vencimiento), 0-100. Solo tiene sentido para tickets abiertos (new/open/pending): uno
  * cerrado ya no está "por vencer" — devolver null ahí evita mostrar un
  * anillo que siga avanzando (y terminando siempre en rojo) mucho después
  * de resuelto. También null si el ticket no tiene fecha de vencimiento
- * (ni duedate ni est_duedate) o si esa fecha es anterior a la de creación
+ * (escalation_solution_time en Znuny) o si esa fecha es anterior a la de creación
  * (dato inconsistente: no inventamos un porcentaje a partir de eso).
  */
-export function computeSlaPercentage(ticket: Pick<Ticket, "status" | "createdAt" | "slaDueAt">): number | null {
-  if (ticket.status !== "open" || !ticket.slaDueAt) return null;
+export function computeSlaPercentage(ticket: Pick<Ticket, "stateType" | "createdAt" | "slaDueAt">): number | null {
+  if (!isOpenStateType(ticket.stateType) || !ticket.slaDueAt) return null;
 
   const created = new Date(ticket.createdAt).getTime();
   const due = new Date(ticket.slaDueAt).getTime();

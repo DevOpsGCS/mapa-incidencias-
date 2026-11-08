@@ -1,7 +1,7 @@
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
-import { getDepartmentIcon } from "./departmentIcons";
-import { DepartmentCount, PriorityPresence } from "./siteDominance";
+import { queueIcon } from "./queueIcons";
+import { PriorityPresence, QueueCount } from "./siteDominance";
 
 // --- Geometría del marcador -------------------------------------------
 // Todo el marcador (principal + secundarios) debe caber en un cuadrado fijo
@@ -37,63 +37,63 @@ const iconCache = new Map<string, L.DivIcon>();
 
 /**
  * Aro de prioridad: 4 cuadrantes fijos en sentido horario desde las 12
- * (urgente, alta, normal, baja). Cada cuadrante se pinta con el color de su
- * rol SOLO si esa prioridad tiene al menos un ticket abierto en el sitio;
- * si no, queda en gris neutro (var(--border)). No es proporcional a la
- * cantidad de tickets, solo indica presencia/ausencia.
+ * (rank 0 = la más alta, rank 1, rank 2, rank ≥ 3), con los mismos colores
+ * que priorityColor. Cada cuadrante se pinta SOLO si esa prioridad tiene al
+ * menos un ticket abierto en el sitio; si no, queda en gris neutro
+ * (var(--border)). No es proporcional a la cantidad de tickets.
  */
 function priorityRingBackground(presence: PriorityPresence): string {
-  const urgente = presence.urgente ? "var(--fill-danger)" : "var(--border)";
-  const high = presence.high ? "var(--fill-warning)" : "var(--border)";
-  const normal = presence.normal ? "var(--fill-accent)" : "var(--border)";
-  const low = presence.low ? "var(--fill-success)" : "var(--border)";
-  return `conic-gradient(from 0deg, ${urgente} 0% 25%, ${high} 25% 50%, ${normal} 50% 75%, ${low} 75% 100%)`;
+  const [top, high, normal, low] = presence;
+  const c0 = top ? "var(--fill-danger)" : "var(--border)";
+  const c1 = high ? "var(--fill-warning)" : "var(--border)";
+  const c2 = normal ? "var(--fill-accent)" : "var(--border)";
+  const c3 = low ? "var(--fill-success)" : "var(--border)";
+  return `conic-gradient(from 0deg, ${c0} 0% 25%, ${c1} 25% 50%, ${c2} 50% 75%, ${c3} 75% 100%)`;
 }
 
 /**
  * Construye el marcador compuesto de un sitio: un ícono principal (el
- * departamento con más tickets abiertos, con un aro segmentado en 4
+ * cola raíz con más tickets abiertos, con un aro segmentado en 4
  * cuadrantes de prioridad) más hasta 3 íconos secundarios apilados tipo
  * "fichas de dominó" sobre la esquina inferior derecha del principal, para
- * los siguientes departamentos con tickets abiertos. Si sobran más de 3
- * departamentos adicionales, el último slot se reemplaza por un badge "+N"
+ * los siguientes colas con tickets abiertos. Si sobran más de 3
+ * colas adicionales, el último slot se reemplaza por un badge "+N"
  * en vez de un tercer ícono.
  *
- * Se reconstruye en cada render con los datos vigentes (departmentCounts y
+ * Se reconstruye en cada render con los datos vigentes (queueCounts y
  * priorityPresence vienen de useMemo atados al array de tickets), así que
  * refleja automáticamente los eventos ticket:new/ticket:updated de
  * socket.io.
  */
 export function buildSiteMarkerIcon(
-  departmentCounts: DepartmentCount[],
+  queueCounts: QueueCount[],
   priorityPresence: PriorityPresence,
   selected: boolean,
   siteId?: string
 ): L.DivIcon {
-  const cacheKey = `${siteId}|${JSON.stringify(departmentCounts)}|${JSON.stringify(priorityPresence)}|${selected}`;
+  const cacheKey = `${siteId}|${JSON.stringify(queueCounts)}|${JSON.stringify(priorityPresence)}|${selected}`;
   const cached = iconCache.get(cacheKey);
   if (cached) return cached;
 
-  const [dominant, ...additional] = departmentCounts;
+  const [dominant, ...additional] = queueCounts;
 
-  const DominantIcon = getDepartmentIcon(dominant?.department);
+  const DominantIcon = queueIcon(dominant?.queue);
   const mainGlyph = renderToStaticMarkup(
     <DominantIcon size={Math.round(INNER_SIZE * 0.5)} color="var(--text)" stroke={2} />
   );
 
   const selectedRing = selected ? "0 0 0 3px rgba(62,214,196,0.55)," : "";
-  const hasOpenTickets =
-    priorityPresence.urgente || priorityPresence.high || priorityPresence.normal || priorityPresence.low;
-  // Rojo pulsante para sitios con urgente abierto (ver .marker-pulse); azul
+  const hasOpenTickets = priorityPresence.some(Boolean);
+  // Rojo pulsante para sitios con la prioridad máxima abierta (ver .marker-pulse); azul
   // más sutil para sitios con cualquier otro ticket abierto, así se
   // distingue de un sitio realmente sin nada pendiente (sin glow).
-  const pulseClass = priorityPresence.urgente
+  const pulseClass = priorityPresence[0]
     ? "marker-pulse"
     : hasOpenTickets
       ? "marker-pulse-open"
       : "";
 
-  // Máximo 3 slots secundarios en total: si hay más de 3 departamentos
+  // Máximo 3 slots secundarios en total: si hay más de 3 colas
   // adicionales, los primeros 2 se muestran como íconos y el 3er slot se
   // convierte en el badge "+N" (nunca se agrega un 4to elemento).
   const showBadge = additional.length > MAX_SECONDARY_SLOTS;
@@ -105,7 +105,7 @@ export function buildSiteMarkerIcon(
   let secondaryHtml = "";
   iconsToShow.forEach((entry, index) => {
     const edge = index * SECONDARY_STEP; // 0, 8, 16...
-    const SecondaryIcon = getDepartmentIcon(entry.department);
+    const SecondaryIcon = queueIcon(entry.queue);
     const glyph = renderToStaticMarkup(
       <SecondaryIcon
         size={Math.round(SECONDARY_SIZE * 0.55)}

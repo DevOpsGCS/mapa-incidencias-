@@ -1,10 +1,12 @@
 import { useMemo } from "react";
-import { getSiteSeverity, SEVERITY_COLORS, SITE_TYPE_LABELS, SiteSeverity } from "../lib/labels";
-import { Site, SiteStat } from "../types";
+import { SEVERITY_COLORS, SITE_TYPE_LABELS } from "../lib/labels";
+import { siteSeverity, SiteSeverity } from "../lib/znunyColors";
+import { ZnunyStats } from "../lib/znunyStats";
+import { Site } from "../types";
 
 interface SiteRailProps {
   sites: Site[];
-  siteStatsById: Map<string, SiteStat>;
+  siteStatsById: Map<string, ZnunyStats["bySite"][number]>;
   selectedSiteId?: string;
   onSelectSite: (site: Site) => void;
 }
@@ -16,8 +18,8 @@ export function SiteRail({ sites, siteStatsById, selectedSiteId, onSelectSite }:
     return [...sites].sort((a, b) => {
       const statA = siteStatsById.get(a.id);
       const statB = siteStatsById.get(b.id);
-      const sevA = getSiteSeverity({ open: statA?.open ?? 0, urgenteOpen: statA?.urgenteOpen ?? 0 });
-      const sevB = getSiteSeverity({ open: statB?.open ?? 0, urgenteOpen: statB?.urgenteOpen ?? 0 });
+      const sevA = siteSeverity({ open: statA?.open ?? 0, topPriorityOpen: statA?.topPriorityOpen ?? 0 });
+      const sevB = siteSeverity({ open: statB?.open ?? 0, topPriorityOpen: statB?.topPriorityOpen ?? 0 });
       if (SEVERITY_RANK[sevA] !== SEVERITY_RANK[sevB]) {
         return SEVERITY_RANK[sevA] - SEVERITY_RANK[sevB];
       }
@@ -33,7 +35,7 @@ export function SiteRail({ sites, siteStatsById, selectedSiteId, onSelectSite }:
       <div className="thin-scroll flex-1 overflow-y-auto">
         {sorted.map((site) => {
           const stat = siteStatsById.get(site.id);
-          const severity = getSiteSeverity({ open: stat?.open ?? 0, urgenteOpen: stat?.urgenteOpen ?? 0 });
+          const severity = siteSeverity({ open: stat?.open ?? 0, topPriorityOpen: stat?.topPriorityOpen ?? 0 });
           const active = site.id === selectedSiteId;
 
           return (

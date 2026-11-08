@@ -9,10 +9,10 @@ import {
   YAxis,
 } from "recharts";
 import { ACCENT_CYAN, CHART_CHROME } from "../lib/labels";
-import { TicketStats } from "../types";
+import { ZnunyStats } from "../lib/znunyStats";
 
 interface TrendChartProps {
-  stats: TicketStats;
+  stats: ZnunyStats;
 }
 
 const RANGE_OPTIONS = [7, 30] as const;

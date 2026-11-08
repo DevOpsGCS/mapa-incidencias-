@@ -55,11 +55,15 @@ export function useDashboardData() {
 
   const handleTicketNew = useCallback(
     (incoming: Ticket) => {
+      // Reenvío de un ticket que el cliente ya tenía (p. ej. el sync lo trajo
+      // antes que el evento): el reducer no duplica los datos y acá no se avisa dos veces.
+      const alreadyKnown = stateRef.current.tickets.some((t) => t.id === incoming.id);
       setState((prev) => ({
         ...prev,
         tickets: applyDashboardEvent(prev.tickets, { type: "new", ticket: incoming }),
         lastEventAt: new Date(),
       }));
+      if (alreadyKnown) return;
       playTicketChime();
       pushNotification({ id: `${incoming.id}-${Date.now()}`, kind: "new", ticket: incoming });
     },

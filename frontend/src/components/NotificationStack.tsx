@@ -1,32 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TicketNotification } from "../hooks/useDashboardData";
-import { DepartmentIcon } from "../lib/departmentIcons";
-import { PRIORITY_LABELS, STATUS_CHART_COLORS, STATUS_LABELS } from "../lib/labels";
-import { Site, TicketPriority } from "../types";
+import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
+import { QueueIcon } from "../lib/queueIcons";
+import { priorityColor, stateTypeColor } from "../lib/znunyColors";
+import { Catalog } from "../types";
 
 interface NotificationStackProps {
   notifications: TicketNotification[];
-  sites: Site[];
+  /** null mientras carga el catálogo: las prioridades caen al color del rank más bajo. */
+  catalog: Catalog | null;
   onDismiss: (id: string) => void;
 }
 
 const VISIBLE_DURATION_MS = 12000;
 const EXIT_DURATION_MS = 300;
 
-const PRIORITY_BORDER: Record<TicketPriority, string> = {
-  urgente: "var(--red)",
-  high: "var(--amber)",
-  normal: "var(--blue)",
-  low: "var(--muted-2)",
-};
-
 /** Banner "ticket entrante"/"cambio de estado": aparece con ticket:new o ticket:status_changed y se auto-oculta a los pocos segundos. */
-export function NotificationStack({ notifications, sites, onDismiss }: NotificationStackProps) {
-  const siteNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    sites.forEach((site) => map.set(site.id, site.name));
-    return map;
-  }, [sites]);
+export function NotificationStack({ notifications, catalog, onDismiss }: NotificationStackProps) {
+  const rankById = useMemo(() => buildPriorityRankMap(catalog), [catalog]);
 
   if (notifications.length === 0) return null;
 
@@ -36,7 +27,7 @@ export function NotificationStack({ notifications, sites, onDismiss }: Notificat
         <Toast
           key={notification.id}
           notification={notification}
-          siteName={siteNameById.get(notification.ticket.siteId) ?? notification.ticket.siteId}
+          priorityRank={rankById.get(notification.ticket.priorityId) ?? UNKNOWN_PRIORITY_RANK}
           onDismiss={() => onDismiss(notification.id)}
         />
       ))}
@@ -46,12 +37,13 @@ export function NotificationStack({ notifications, sites, onDismiss }: Notificat
 
 interface ToastProps {
   notification: TicketNotification;
-  siteName: string;
+  priorityRank: number;
   onDismiss: () => void;
 }
 
-function Toast({ notification, siteName, onDismiss }: ToastProps) {
-  const { ticket, kind, previousStatus } = notification;
+function Toast({ notification, priorityRank, onDismiss }: ToastProps) {
+  const { ticket, kind, previousState } = notification;
+  const siteName = ticket.siteName ?? ticket.siteKey ?? "Sin sitio";
   const [visible, setVisible] = useState(false);
   const removeTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -83,11 +75,12 @@ function Toast({ notification, siteName, onDismiss }: ToastProps) {
   };
 
   const isStatusChange = kind === "status_changed";
-  const borderColor = isStatusChange ? STATUS_CHART_COLORS[ticket.status] : PRIORITY_BORDER[ticket.priority];
-  const label = isStatusChange ? `Cambio de estado · ${ticket.id}` : `Nuevo ticket · ${ticket.id}`;
+  const borderColor = isStatusChange ? stateTypeColor(ticket.stateType) : priorityColor(priorityRank);
+  const label = isStatusChange ? "Cambio de estado" : "Nuevo ticket";
   const metaLine = isStatusChange
-    ? `${siteName} · ${previousStatus ? `${STATUS_LABELS[previousStatus]} → ` : ""}${STATUS_LABELS[ticket.status]}`
-    : `${siteName} · ${PRIORITY_LABELS[ticket.priority]}`;
+    ? `${siteName} · ${previousState ? `de ${previousState} a ${ticket.state}` : ticket.state}`
+    : `${siteName} · ${ticket.priority}`;
+  const headline = `${ticket.tn} · ${ticket.title}`;
 
   return (
     <div
@@ -97,25 +90,25 @@ function Toast({ notification, siteName, onDismiss }: ToastProps) {
       style={{ borderLeftColor: borderColor }}
     >
       <div className="mt-0.5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06]">
-        <DepartmentIcon department={ticket.department} size={28} />
+        <QueueIcon queue={ticket.queue} size={28} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="mono-label text-sm" style={{ color: isStatusChange ? borderColor : "var(--cyan)" }}>
           {label}
         </p>
-        {ticket.osTicketUrl ? (
+        {ticket.znunyUrl ? (
           <a
-            href={ticket.osTicketUrl}
+            href={ticket.znunyUrl}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
             className="mt-1 line-clamp-2 block text-xl font-medium text-[color:var(--text)] hover:text-[color:var(--cyan)] hover:underline"
-            title="Ver ticket en osTicket"
+            title="Ver ticket en Znuny"
           >
-            {ticket.subject}
+            {headline}
           </a>
         ) : (
           <p className="mt-1 line-clamp-2 text-xl font-medium text-[color:var(--text)]">
-            {ticket.subject}
+            {headline}
           </p>
         )}
         <p className="mono-label mt-1.5 text-sm text-[color:var(--muted)]">{metaLine}</p>

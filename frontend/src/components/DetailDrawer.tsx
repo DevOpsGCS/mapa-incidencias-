@@ -1,23 +1,22 @@
 import { IconExternalLink } from "@tabler/icons-react";
 import { PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { SlaRing } from "./SlaRing";
-import { DepartmentIcon } from "../lib/departmentIcons";
-import {
-  PRIORITY_BADGE_CLASSES,
-  PRIORITY_LABELS,
-  SITE_TYPE_LABELS,
-  STATUS_LABELS,
-} from "../lib/labels";
+import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
+import { QueueIcon } from "../lib/queueIcons";
+import { SITE_TYPE_LABELS } from "../lib/labels";
 import { computeSlaPercentage } from "../lib/sla";
-import { Site, Ticket, TicketStatus } from "../types";
+import { formatSvDateTime } from "../lib/svTime";
+import { isOpenStateType, priorityColor } from "../lib/znunyColors";
+import { Catalog, Site, StateType, Ticket } from "../types";
 
 interface DetailDrawerProps {
   site: Site | null;
   tickets: Ticket[];
+  catalog: Catalog;
   onClose: () => void;
 }
 
-const STATUS_FILTERS: (TicketStatus | "all")[] = ["all", "open", "resolved", "closed"];
+const STATE_TYPE_ORDER: Record<StateType, number> = { new: 0, open: 1, pending: 2, closed: 3 };
 
 // Alturas en px (nunca "auto"/vh puro): animar max-height solo funciona suave
 // entre dos números concretos, así que se calculan acá y se aplican inline.
@@ -30,12 +29,8 @@ const MIN_DRAG_HEIGHT = 120; // piso visual mientras se arrastra hacia abajo
 const CLOSE_HEIGHT_THRESHOLD = 160; // al soltar por debajo de esto, cierra
 const EXPAND_HEIGHT_THRESHOLD = COMPACT_HEIGHT + 40; // al soltar por encima de esto, queda expandida
 
-function isOpenStatus(status: TicketStatus): boolean {
-  return status === "open";
-}
-
-export function DetailDrawer({ site, tickets, onClose }: DetailDrawerProps) {
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
+export function DetailDrawer({ site, tickets, catalog, onClose }: DetailDrawerProps) {
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -47,18 +42,31 @@ export function DetailDrawer({ site, tickets, onClose }: DetailDrawerProps) {
     setExpanded(false);
   }, [site?.id]);
 
-  const siteTickets = useMemo(() => {
-    if (!site) return [];
-    const filtered = tickets.filter((t) => t.siteId === site.id);
-    return statusFilter === "all"
-      ? filtered
-      : filtered.filter((t) => t.status === statusFilter);
-  }, [tickets, site, statusFilter]);
+  const rankById = useMemo(() => buildPriorityRankMap(catalog), [catalog]);
 
-  const openCount = useMemo(() => {
-    if (!site) return 0;
-    return tickets.filter((t) => t.siteId === site.id && isOpenStatus(t.status)).length;
-  }, [tickets, site]);
+  const allSiteTickets = useMemo(
+    () => (site ? tickets.filter((t) => t.siteId === site.id) : []),
+    [tickets, site]
+  );
+
+  // Chips de estado con los nombres reales de Znuny presentes en este sitio.
+  const stateChips = useMemo(() => {
+    const byName = new Map<string, StateType>();
+    allSiteTickets.forEach((t) => byName.set(t.state, t.stateType));
+    return Array.from(byName, ([name, type]) => ({ name, type })).sort(
+      (a, b) => STATE_TYPE_ORDER[a.type] - STATE_TYPE_ORDER[b.type] || a.name.localeCompare(b.name)
+    );
+  }, [allSiteTickets]);
+
+  const siteTickets = useMemo(
+    () => (statusFilter === "all" ? allSiteTickets : allSiteTickets.filter((t) => t.state === statusFilter)),
+    [allSiteTickets, statusFilter]
+  );
+
+  const openCount = useMemo(
+    () => allSiteTickets.filter((t) => isOpenStateType(t.stateType)).length,
+    [allSiteTickets]
+  );
 
   const expandedHeight =
     typeof window !== "undefined"
@@ -142,7 +150,7 @@ export function DetailDrawer({ site, tickets, onClose }: DetailDrawerProps) {
         </div>
 
         <div className="mb-3 flex flex-wrap gap-1 px-5">
-          {STATUS_FILTERS.map((status) => (
+          {["all", ...stateChips.map((chip) => chip.name)].map((status) => (
             <button
               key={status}
               type="button"
@@ -154,7 +162,7 @@ export function DetailDrawer({ site, tickets, onClose }: DetailDrawerProps) {
                   : "text-[color:var(--muted)] hover:text-[color:var(--text)]"
               }`}
             >
-              {status === "all" ? "TODOS" : STATUS_LABELS[status].toUpperCase()}
+              {status === "all" ? "TODOS" : status.toUpperCase()}
             </button>
           ))}
         </div>
@@ -166,56 +174,66 @@ export function DetailDrawer({ site, tickets, onClose }: DetailDrawerProps) {
             No hay tickets para este filtro.
           </p>
         ) : (
-          siteTickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              className="relative rounded-r-lg border border-[color:var(--glass-border)] border-l-[3px] bg-white/[0.03] px-3 py-2.5"
-              style={{
-                borderLeftColor:
-                  ticket.priority === "urgente" ? "var(--red)" : "var(--blue)",
-              }}
-            >
-              {/* Absoluto a propósito: el anillo (42px + etiqueta "SLA") es
-                  más alto que una sola línea de asunto — si compartiera fila
-                  flex con el texto, la altura de la fila quedaba fijada por
-                  el anillo y el resto de la tarjeta (prioridad, tema, equipo)
-                  se corría más abajo de lo necesario cuando el asunto era
-                  corto. Así queda desacoplado del flujo normal. */}
-              <div className="absolute right-2 top-2">
-                <SlaRing percentage={computeSlaPercentage(ticket)} />
-              </div>
-              <div className="min-w-0 pr-11">
-                {ticket.osTicketUrl ? (
-                  <a
-                    href={ticket.osTicketUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="line-clamp-2 inline-flex items-start gap-1 text-xs text-[color:var(--text)] hover:text-[color:var(--cyan)] hover:underline"
-                    title="Ver ticket en osTicket"
+          siteTickets.map((ticket) => {
+            const color = priorityColor(rankById.get(ticket.priorityId) ?? UNKNOWN_PRIORITY_RANK);
+            const slaPct = computeSlaPercentage(ticket);
+            return (
+              <div
+                key={ticket.id}
+                className="relative rounded-r-lg border border-[color:var(--glass-border)] border-l-[3px] bg-white/[0.03] px-3 py-2.5"
+                style={{ borderLeftColor: color }}
+              >
+                {/* Absoluto a propósito: el anillo (42px + etiqueta "SLA") es
+                    más alto que una sola línea de título — si compartiera fila
+                    flex con el texto, la altura de la fila quedaba fijada por
+                    el anillo y el resto de la tarjeta se corría más abajo de
+                    lo necesario cuando el título era corto. */}
+                <div className="absolute right-2 top-2">
+                  <SlaRing percentage={slaPct} />
+                </div>
+                <div className="min-w-0 pr-11">
+                  <p className="line-clamp-2 text-xs text-[color:var(--text)]">
+                    <span className="font-mono text-[color:var(--muted)]">{ticket.tn}</span> · {ticket.title}
+                  </p>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className="mono-label rounded px-1.5 py-0.5 text-[9px] font-semibold"
+                    style={{ color, background: `${color}26`, boxShadow: `inset 0 0 0 1px ${color}4D` }}
                   >
-                    {ticket.subject}
-                    <IconExternalLink size={11} stroke={2} className="mt-0.5 flex-shrink-0" />
-                  </a>
-                ) : (
-                  <p className="line-clamp-2 text-xs text-[color:var(--text)]">{ticket.subject}</p>
-                )}
-              </div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span
-                  className={`mono-label rounded px-1.5 py-0.5 text-[9px] font-semibold ${PRIORITY_BADGE_CLASSES[ticket.priority]}`}
-                >
-                  {PRIORITY_LABELS[ticket.priority].toUpperCase()}
-                </span>
-                <p className="mono-label flex items-center gap-1 text-[9.5px] text-[color:var(--muted)]">
-                  <DepartmentIcon department={ticket.department} size={11} />
-                  #{ticket.id} · {ticket.department}
+                    {ticket.priority.toUpperCase()}
+                  </span>
+                  <span className="mono-label rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-[color:var(--muted)]">
+                    {ticket.state.toUpperCase()}
+                  </span>
+                  <p className="mono-label flex items-center gap-1 text-[9.5px] text-[color:var(--muted)]">
+                    <QueueIcon queue={ticket.queue} size={11} />
+                    {ticket.queue}
+                  </p>
+                </div>
+                <p className="mono-label mt-1 truncate text-[9px] text-[color:var(--muted-2)]">
+                  Tipo: {ticket.type ?? "—"} · Servicio: {ticket.service ?? "—"} · SLA: {ticket.sla ?? "—"}
                 </p>
+                <p className="mono-label truncate text-[9px] text-[color:var(--muted-2)]">
+                  Propietario: {ticket.owner} · Responsable: {ticket.responsible ?? "—"} · Cliente: {ticket.customer}
+                </p>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="mono-label text-[9px] text-[color:var(--muted-2)]">
+                    {formatSvDateTime(ticket.createdAt)}
+                  </span>
+                  <a
+                    href={ticket.znunyUrl}
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-flex items-center gap-1 rounded-md border border-[color:var(--glass-border)] px-2 py-0.5 text-[10px] text-[color:var(--text)] transition-colors hover:text-[color:var(--cyan)]"
+                  >
+                    Ver en Znuny
+                    <IconExternalLink size={11} stroke={2} />
+                  </a>
+                </div>
               </div>
-              <p className="mono-label mt-1 truncate text-[9px] text-[color:var(--muted-2)]">
-                Tema: {ticket.helpTopic} · Equipo: {ticket.team}
-              </p>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

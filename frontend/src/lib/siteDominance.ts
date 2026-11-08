@@ -1,19 +1,24 @@
-import { Ticket, TicketPriority } from "../types";
+import { Ticket } from "../types";
+import { rootQueue } from "./queueFilter";
+import { UNKNOWN_PRIORITY_RANK } from "./priorityRank";
+import { isOpenStateType } from "./znunyColors";
 
-export interface DepartmentCount {
-  department: string;
+export interface QueueCount {
+  /** Cola raíz (las subcolas se agrupan bajo su raíz). */
+  queue: string;
   count: number;
 }
 
-export type PriorityPresence = Record<TicketPriority, boolean>;
+/** Presencia de prioridad abierta por cuadrante: [rank 0, rank 1, rank 2, rank ≥ 3]. */
+export type PriorityPresence = [boolean, boolean, boolean, boolean];
 
-function isOpenStatus(status: Ticket["status"]): boolean {
-  return status === "open";
-}
+export const EMPTY_PRESENCE: PriorityPresence = [false, false, false, false];
 
 function groupTicketsBySite(tickets: Ticket[]): Map<string, Ticket[]> {
   const bySite = new Map<string, Ticket[]>();
   for (const ticket of tickets) {
+    // siteId "" = Ubicacion sin sitio mapeado: no tiene marcador en el mapa.
+    if (!ticket.siteId) continue;
     const list = bySite.get(ticket.siteId);
     if (list) list.push(ticket);
     else bySite.set(ticket.siteId, [ticket]);
@@ -21,50 +26,48 @@ function groupTicketsBySite(tickets: Ticket[]): Map<string, Ticket[]> {
   return bySite;
 }
 
-function departmentCounts(tickets: Ticket[]): DepartmentCount[] {
+function queueCounts(tickets: Ticket[]): QueueCount[] {
   const counts = new Map<string, number>();
   for (const ticket of tickets) {
-    counts.set(ticket.department, (counts.get(ticket.department) ?? 0) + 1);
+    const root = rootQueue(ticket.queue);
+    counts.set(root, (counts.get(root) ?? 0) + 1);
   }
-  return Array.from(counts, ([department, count]) => ({ department, count })).sort(
-    (a, b) => b.count - a.count
-  );
+  return Array.from(counts, ([queue, count]) => ({ queue, count })).sort((a, b) => b.count - a.count);
 }
 
 /**
- * Desglose de departamentos por sitio, usado para armar el marcador
- * compuesto del mapa: para cada sitio, la lista de departamentos con
- * tickets *abiertos* (status open), ordenada de mayor a menor cantidad.
- * Si un sitio no tiene tickets abiertos, cae al departamento históricamente
- * más frecuente en ese sitio (para no dejar el marcador sin ícono).
+ * Desglose de colas raíz por sitio, usado para armar el marcador compuesto
+ * del mapa: para cada sitio, las colas con tickets *abiertos* (new/open/
+ * pending), de mayor a menor cantidad. Si un sitio no tiene tickets
+ * abiertos, cae a la cola históricamente más frecuente (para no dejar el
+ * marcador sin ícono).
  */
-export function computeSiteDepartmentBreakdown(tickets: Ticket[]): Map<string, DepartmentCount[]> {
-  const result = new Map<string, DepartmentCount[]>();
+export function computeSiteQueueBreakdown(tickets: Ticket[]): Map<string, QueueCount[]> {
+  const result = new Map<string, QueueCount[]>();
   for (const [siteId, siteTickets] of groupTicketsBySite(tickets)) {
-    const openCounts = departmentCounts(siteTickets.filter((t) => isOpenStatus(t.status)));
-    if (openCounts.length > 0) {
-      result.set(siteId, openCounts);
-    } else {
-      result.set(siteId, departmentCounts(siteTickets).slice(0, 1));
-    }
+    const openCounts = queueCounts(siteTickets.filter((t) => isOpenStateType(t.stateType)));
+    result.set(siteId, openCounts.length > 0 ? openCounts : queueCounts(siteTickets).slice(0, 1));
   }
   return result;
 }
 
 /**
  * Presencia (sí/no) de cada prioridad entre los tickets *abiertos* de cada
- * sitio — usado para pintar el aro segmentado en 4 cuadrantes del marcador
- * (uno por prioridad). No es proporcional a la cantidad de tickets, solo
- * indica si esa prioridad tiene al menos un ticket abierto en el sitio.
+ * sitio, por rank (0 = la más alta; ≥3 comparten el último cuadrante) —
+ * pinta el aro segmentado en 4 cuadrantes del marcador. No es proporcional
+ * a la cantidad de tickets.
  */
-export function computeSitePriorityPresence(tickets: Ticket[]): Map<string, PriorityPresence> {
+export function computeSitePriorityPresence(
+  tickets: Ticket[],
+  rankById: Map<number, number>
+): Map<string, PriorityPresence> {
   const result = new Map<string, PriorityPresence>();
   for (const [siteId, siteTickets] of groupTicketsBySite(tickets)) {
-    const presence: PriorityPresence = { low: false, normal: false, high: false, urgente: false };
+    const presence: PriorityPresence = [false, false, false, false];
     for (const ticket of siteTickets) {
-      if (isOpenStatus(ticket.status)) {
-        presence[ticket.priority] = true;
-      }
+      if (!isOpenStateType(ticket.stateType)) continue;
+      const rank = rankById.get(ticket.priorityId) ?? UNKNOWN_PRIORITY_RANK;
+      presence[Math.min(Math.max(rank, 0), 3)] = true;
     }
     result.set(siteId, presence);
   }
