@@ -1,5 +1,5 @@
 import { credentialedRequest } from "./client";
-import { AdminUserSummary, Role, Site, SiteType } from "../types";
+import { AdminUserSummary, Catalog, Role, Site, SiteType } from "../types";
 
 function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return credentialedRequest<T>(`/api/admin${path}`, init);
@@ -9,19 +9,35 @@ export function fetchConfiguredSites(): Promise<Site[]> {
   return adminRequest<Site[]>("/sites");
 }
 
-export function fetchUnmappedSiteNames(): Promise<string[]> {
-  return adminRequest<string[]>("/sites/unmapped");
+/** Sitios configurados con el nombre visible en vivo (etiqueta de Znuny); `/api/admin/sites` solo trae el nombre guardado. */
+export function fetchSitesWithLiveLabels(): Promise<Site[]> {
+  return credentialedRequest<Site[]>("/api/sites");
 }
 
-export interface UpsertSitePayload {
-  name: string;
+export interface UnmappedSite {
+  key: string;
+  label: string;
+}
+
+/** Opciones de Ubicacion de Znuny sin tipo ni coordenadas todavía. */
+export function fetchUnmappedSites(): Promise<UnmappedSite[]> {
+  return adminRequest<UnmappedSite[]>("/sites/unmapped");
+}
+
+export interface SaveSitePayload {
+  znunyKey: string;
   type: SiteType;
   lat: number;
   lng: number;
 }
 
-export function upsertSite(payload: UpsertSitePayload): Promise<Site> {
+export function saveSite(payload: SaveSitePayload): Promise<Site> {
   return adminRequest<Site>("/sites", { method: "POST", body: JSON.stringify(payload) });
+}
+
+/** Catálogo de colas de Znuny (503 si Znuny no está disponible). */
+export function fetchAdminQueues(): Promise<Catalog["queues"]> {
+  return adminRequest<Catalog["queues"]>("/queues");
 }
 
 export function deleteSite(name: string): Promise<{ ok: true }> {
@@ -44,6 +60,8 @@ export interface CreateUserPayload {
   role: Role;
   /** Vacío/omitido = sin restricción, ve todos los departamentos. */
   allowedDepartments?: string[];
+  /** `[]` = todas las colas; `null` = sin acceso. */
+  allowedQueues?: string[] | null;
 }
 
 export function createUser(payload: CreateUserPayload): Promise<AdminUserSummary> {
@@ -61,6 +79,7 @@ export interface UpdateUserProfilePayload {
   username?: string;
   email?: string;
   allowedDepartments?: string[];
+  allowedQueues?: string[] | null;
 }
 
 export function updateUserProfile(

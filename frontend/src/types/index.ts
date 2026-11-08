@@ -12,6 +12,10 @@ export interface AdminUserSummary {
   role: Role;
   /** Array vacío = sin restricción, ve todos los departamentos. */
   allowedDepartments: string[];
+  /** `[]` = todas las colas de Znuny; `null` = sin acceso (pendiente de asignar). */
+  allowedQueues: string[] | null;
+  /** Colas guardadas que ya no existen en Znuny; `null` = no se pudo verificar (Znuny no disponible). */
+  unknownQueues: string[] | null;
 }
 
 export type SiteType =

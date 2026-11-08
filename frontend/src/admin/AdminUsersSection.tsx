@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   createUser,
   deleteUser,
+  fetchAdminQueues,
   fetchDepartments,
   fetchUsers,
   setUserPassword,
@@ -12,7 +13,15 @@ import {
 import { UnauthorizedError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { PasswordInput } from "../components/PasswordInput";
-import { AdminUserSummary, Role } from "../types";
+import { QueueTreeSelect } from "../components/QueueTreeSelect";
+import {
+  buildQueuesPayload,
+  modeFromAllowedQueues,
+  QueueAccessMode,
+  queueCellFor,
+  unknownQueuesNotices,
+} from "../lib/adminQueues";
+import { AdminUserSummary, Catalog, Role } from "../types";
 import { Badge } from "./Badge";
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -26,6 +35,8 @@ interface CreateFormState {
   password: string;
   role: Role;
   allowedDepartments: string[];
+  queueMode: QueueAccessMode;
+  queues: string[];
 }
 
 interface EditFormState {
@@ -33,6 +44,8 @@ interface EditFormState {
   username: string;
   email: string;
   allowedDepartments: string[];
+  queueMode: QueueAccessMode;
+  queues: string[];
 }
 
 interface PasswordFormState {
@@ -73,10 +86,98 @@ function DepartmentsCheckboxGroup({ departments, selected, onChange }: Departmen
   );
 }
 
+interface QueueAccessFieldProps {
+  mode: QueueAccessMode;
+  selected: string[];
+  /** null = el catálogo de colas no se pudo cargar (Znuny no disponible). */
+  catalogQueues: Catalog["queues"] | null;
+  onModeChange: (mode: QueueAccessMode) => void;
+  onSelectedChange: (next: string[]) => void;
+}
+
+const QUEUE_MODE_OPTIONS: { mode: QueueAccessMode; label: string }[] = [
+  { mode: "all", label: "Todas las colas" },
+  { mode: "specific", label: "Colas específicas" },
+  { mode: "none", label: "Sin acceso" },
+];
+
+function QueueAccessField({ mode, selected, catalogQueues, onModeChange, onSelectedChange }: QueueAccessFieldProps) {
+  return (
+    <div className="block text-sm text-[color:var(--text-secondary)]">
+      Colas de Znuny
+      <div className="mt-1 space-y-1.5">
+        {QUEUE_MODE_OPTIONS.map((option) => (
+          <label key={option.mode} className="flex items-center gap-2 text-sm text-[color:var(--text)]">
+            <input
+              type="radio"
+              name="queue-access-mode"
+              checked={mode === option.mode}
+              onChange={() => onModeChange(option.mode)}
+              className="h-3.5 w-3.5"
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+      {mode === "specific" &&
+        (catalogQueues ? (
+          <QueueTreeSelect
+            multiple
+            queues={catalogQueues}
+            value={selected}
+            onChange={onSelectedChange}
+            placeholder="Elegí las colas"
+            className="mt-2"
+          />
+        ) : (
+          <p className="mt-2 text-sm text-[color:var(--text-disabled)]">
+            No se pudo cargar el catálogo de colas (Znuny no disponible).
+          </p>
+        ))}
+      {mode === "none" && (
+        <p className="mt-2 text-xs text-[color:var(--text-disabled)]">
+          El usuario no verá tickets de Znuny hasta que se le asignen colas.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function QueuesCell({ user }: { user: AdminUserSummary }) {
+  const cell = queueCellFor(user.allowedQueues);
+  const notices = unknownQueuesNotices(user.unknownQueues);
+  return (
+    <div className="flex flex-col items-start gap-1">
+      {cell.kind === "pending" ? (
+        <Badge>Pendiente de asignar colas</Badge>
+      ) : cell.kind === "all" ? (
+        <Badge>Todas</Badge>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {cell.queues.map((name) => (
+            <Badge key={name}>{name}</Badge>
+          ))}
+        </div>
+      )}
+      {Array.isArray(notices) ? (
+        notices.map((notice) => (
+          <span key={notice.text} className="text-xs text-[#FF718A]">
+            {notice.text}
+          </span>
+        ))
+      ) : (
+        <span className="text-xs text-[color:var(--text-disabled)]">{notices.text}</span>
+      )}
+    </div>
+  );
+}
+
 export function AdminUsersSection() {
   const { user: currentUser, clearSession } = useAuth();
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [departmentsError, setDepartmentsError] = useState<string | null>(null);
+  const [catalogQueues, setCatalogQueues] = useState<Catalog["queues"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState<CreateFormState | null>(null);
@@ -91,9 +192,31 @@ export function AdminUsersSection() {
 
   const load = async () => {
     try {
-      const [list, departmentNames] = await Promise.all([fetchUsers(), fetchDepartments()]);
+      // Departamentos (osTicket) y colas (Znuny) son fuentes opcionales: si una cae, el panel de usuarios sigue funcionando.
+      const [list, departmentsResult, queuesResult] = await Promise.all([
+        fetchUsers(),
+        fetchDepartments().then(
+          (names) => ({ ok: true as const, names }),
+          (err: unknown) => ({ ok: false as const, err })
+        ),
+        fetchAdminQueues().then(
+          (queues) => ({ ok: true as const, queues }),
+          (err: unknown) => ({ ok: false as const, err })
+        ),
+      ]);
+      if (
+        (!departmentsResult.ok && departmentsResult.err instanceof UnauthorizedError) ||
+        (!queuesResult.ok && queuesResult.err instanceof UnauthorizedError)
+      ) {
+        clearSession();
+        return;
+      }
       setUsers(list);
-      setDepartments(departmentNames);
+      setDepartments(departmentsResult.ok ? departmentsResult.names : []);
+      setDepartmentsError(
+        departmentsResult.ok ? null : "No se pudo cargar la lista de departamentos (osTicket no disponible)."
+      );
+      setCatalogQueues(queuesResult.ok ? queuesResult.queues : null);
       setError(null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -113,7 +236,16 @@ export function AdminUsersSection() {
 
   const openCreateForm = () => {
     setCreateError(null);
-    setCreateForm({ username: "", email: "", password: "", role: "normal", allowedDepartments: [] });
+    setCreateForm({
+      username: "",
+      email: "",
+      password: "",
+      role: "normal",
+      allowedDepartments: [],
+      // Un usuario nuevo arranca sin acceso a Znuny hasta que se le asignen colas.
+      queueMode: "none",
+      queues: [],
+    });
   };
 
   const handleCreateSubmit = async (event: FormEvent) => {
@@ -124,10 +256,23 @@ export function AdminUsersSection() {
       return;
     }
 
+    const queuesPayload = buildQueuesPayload(createForm.queueMode, createForm.queues);
+    if (!queuesPayload.ok) {
+      setCreateError(queuesPayload.error);
+      return;
+    }
+
     setSaving(true);
     setCreateError(null);
     try {
-      await createUser(createForm);
+      await createUser({
+        username: createForm.username,
+        email: createForm.email,
+        password: createForm.password,
+        role: createForm.role,
+        allowedDepartments: createForm.allowedDepartments,
+        allowedQueues: queuesPayload.value,
+      });
       setCreateForm(null);
       await load();
     } catch (err) {
@@ -161,12 +306,20 @@ export function AdminUsersSection() {
       username: u.username,
       email: u.email,
       allowedDepartments: u.allowedDepartments,
+      queueMode: modeFromAllowedQueues(u.allowedQueues),
+      queues: u.allowedQueues ?? [],
     });
   };
 
   const handleEditSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!editForm) return;
+
+    const queuesPayload = buildQueuesPayload(editForm.queueMode, editForm.queues);
+    if (!queuesPayload.ok) {
+      setEditError(queuesPayload.error);
+      return;
+    }
 
     setEditSaving(true);
     setEditError(null);
@@ -175,6 +328,7 @@ export function AdminUsersSection() {
         username: editForm.username,
         email: editForm.email,
         allowedDepartments: editForm.allowedDepartments,
+        allowedQueues: queuesPayload.value,
       });
       setEditForm(null);
       await load();
@@ -268,6 +422,7 @@ export function AdminUsersSection() {
                 <th className="px-4 py-3 font-medium">Usuario</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Rol</th>
+                <th className="px-4 py-3 font-medium">Colas</th>
                 <th className="px-4 py-3 font-medium">Departamentos</th>
                 <th className="px-4 py-3 font-medium"></th>
               </tr>
@@ -313,6 +468,9 @@ export function AdminUsersSection() {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <QueuesCell user={u} />
                     </td>
                     <td className="px-4 py-2.5">
                       {u.allowedDepartments.length === 0 ? (
@@ -422,13 +580,22 @@ export function AdminUsersSection() {
             </label>
 
             <div className="block text-sm text-[color:var(--text-secondary)]">
-              Departamentos permitidos (vacío = todos)
+              Departamentos (histórico osTicket)
+              {departmentsError && <span className="mt-1 block text-xs text-[#FF718A]">{departmentsError}</span>}
               <DepartmentsCheckboxGroup
                 departments={departments}
                 selected={createForm.allowedDepartments}
                 onChange={(next) => setCreateForm({ ...createForm, allowedDepartments: next })}
               />
             </div>
+
+            <QueueAccessField
+              mode={createForm.queueMode}
+              selected={createForm.queues}
+              catalogQueues={catalogQueues}
+              onModeChange={(queueMode) => setCreateForm({ ...createForm, queueMode })}
+              onSelectedChange={(queues) => setCreateForm({ ...createForm, queues })}
+            />
 
             {createError && <p className="text-sm text-[#FF718A]">{createError}</p>}
 
@@ -483,13 +650,22 @@ export function AdminUsersSection() {
             </label>
 
             <div className="block text-sm text-[color:var(--text-secondary)]">
-              Departamentos permitidos (vacío = todos)
+              Departamentos (histórico osTicket)
+              {departmentsError && <span className="mt-1 block text-xs text-[#FF718A]">{departmentsError}</span>}
               <DepartmentsCheckboxGroup
                 departments={departments}
                 selected={editForm.allowedDepartments}
                 onChange={(next) => setEditForm({ ...editForm, allowedDepartments: next })}
               />
             </div>
+
+            <QueueAccessField
+              mode={editForm.queueMode}
+              selected={editForm.queues}
+              catalogQueues={catalogQueues}
+              onModeChange={(queueMode) => setEditForm({ ...editForm, queueMode })}
+              onSelectedChange={(queues) => setEditForm({ ...editForm, queues })}
+            />
 
             {editError && <p className="text-sm text-[#FF718A]">{editError}</p>}
 

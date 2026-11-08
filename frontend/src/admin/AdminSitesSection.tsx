@@ -3,8 +3,10 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   deleteSite,
   fetchConfiguredSites,
-  fetchUnmappedSiteNames,
-  upsertSite,
+  fetchSitesWithLiveLabels,
+  fetchUnmappedSites,
+  saveSite,
+  UnmappedSite,
 } from "../api/adminClient";
 import { UnauthorizedError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -15,7 +17,9 @@ import { Badge } from "./Badge";
 const SITE_TYPES: SiteType[] = ["aduana_terrestre", "aduana_maritima", "aduana_aerea", "sede"];
 
 interface FormState {
-  name: string;
+  znunyKey: string;
+  /** Nombre visible (etiqueta de Znuny) solo para el título del formulario. */
+  label: string;
   type: SiteType;
   lat: string;
   lng: string;
@@ -24,7 +28,9 @@ interface FormState {
 export function AdminSitesSection() {
   const { clearSession } = useAuth();
   const [configured, setConfigured] = useState<Site[]>([]);
-  const [unmapped, setUnmapped] = useState<string[]>([]);
+  const [unmapped, setUnmapped] = useState<UnmappedSite[]>([]);
+  // clave de Znuny -> nombre visible en vivo (etiqueta de Znuny).
+  const [liveNames, setLiveNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
@@ -33,9 +39,15 @@ export function AdminSitesSection() {
 
   const load = async () => {
     try {
-      const [sites, names] = await Promise.all([fetchConfiguredSites(), fetchUnmappedSiteNames()]);
+      const [sites, options, live] = await Promise.all([
+        fetchConfiguredSites(),
+        fetchUnmappedSites(),
+        // Si falla, se muestran los nombres guardados.
+        fetchSitesWithLiveLabels().catch((): Site[] => []),
+      ]);
       setConfigured(sites);
-      setUnmapped(names);
+      setUnmapped(options);
+      setLiveNames(new Map(live.filter((s) => s.znunyKey).map((s) => [s.znunyKey as string, s.name])));
       setError(null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -53,14 +65,23 @@ export function AdminSitesSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const openAssignForm = (name: string) => {
+  const displayName = (site: Site) => (site.znunyKey && liveNames.get(site.znunyKey)) || site.name;
+
+  const openAssignForm = (option: UnmappedSite) => {
     setFormError(null);
-    setForm({ name, type: "sede", lat: "", lng: "" });
+    setForm({ znunyKey: option.key, label: option.label, type: "sede", lat: "", lng: "" });
   };
 
   const openEditForm = (site: Site) => {
+    if (!site.znunyKey) return;
     setFormError(null);
-    setForm({ name: site.name, type: site.type, lat: String(site.lat), lng: String(site.lng) });
+    setForm({
+      znunyKey: site.znunyKey,
+      label: displayName(site),
+      type: site.type,
+      lat: String(site.lat),
+      lng: String(site.lng),
+    });
   };
 
   const closeForm = () => setForm(null);
@@ -79,7 +100,7 @@ export function AdminSitesSection() {
     setSaving(true);
     setFormError(null);
     try {
-      await upsertSite({ name: form.name, type: form.type, lat, lng });
+      await saveSite({ znunyKey: form.znunyKey, type: form.type, lat, lng });
       setForm(null);
       await load();
     } catch (err) {
@@ -93,8 +114,9 @@ export function AdminSitesSection() {
     }
   };
 
-  const handleDelete = async (name: string) => {
-    if (!window.confirm(`¿Quitar coordenadas de "${name}"? El sitio deja de verse en el mapa hasta que se vuelva a configurar.`)) {
+  // El DELETE busca por el nombre guardado; la confirmación muestra el nombre visible.
+  const handleDelete = async (name: string, label: string) => {
+    if (!window.confirm(`¿Quitar coordenadas de "${label}"? El sitio deja de verse en el mapa hasta que se vuelva a configurar.`)) {
       return;
     }
     try {
@@ -145,15 +167,15 @@ export function AdminSitesSection() {
             </p>
           </div>
           <ul className="space-y-1.5">
-            {unmapped.map((name) => (
+            {unmapped.map((option) => (
               <li
-                key={name}
+                key={option.key}
                 className="flex items-center justify-between gap-2 rounded-md bg-black/10 px-3 py-1.5 text-sm text-[color:var(--text)]"
               >
-                <span>{name}</span>
+                <span>{option.label}</span>
                 <button
                   type="button"
-                  onClick={() => openAssignForm(name)}
+                  onClick={() => openAssignForm(option)}
                   className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-medium text-[color:var(--text)] hover:bg-white/20"
                 >
                   Asignar coordenadas
@@ -181,7 +203,7 @@ export function AdminSitesSection() {
                   key={site.id}
                   className="border-t border-[color:var(--glass-border)] transition-colors hover:bg-white/[0.03]"
                 >
-                  <td className="px-4 py-2.5 text-[color:var(--text)]">{site.name}</td>
+                  <td className="px-4 py-2.5 text-[color:var(--text)]">{displayName(site)}</td>
                   <td className="px-4 py-2.5">
                     <Badge>{SITE_TYPE_LABELS[site.type]}</Badge>
                   </td>
@@ -192,16 +214,17 @@ export function AdminSitesSection() {
                     <button
                       type="button"
                       onClick={() => openEditForm(site)}
-                      aria-label={`Editar ${site.name}`}
-                      title="Editar"
-                      className="mr-2 rounded p-1 text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text)]"
+                      disabled={!site.znunyKey}
+                      aria-label={`Editar ${displayName(site)}`}
+                      title={site.znunyKey ? "Editar" : "Sitio sin clave de Znuny: solo existe en el histórico"}
+                      className="mr-2 rounded p-1 text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text)] disabled:cursor-not-allowed disabled:text-[color:var(--text-disabled)]"
                     >
                       <IconEdit size={15} stroke={2} />
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(site.name)}
-                      aria-label={`Borrar ${site.name}`}
+                      onClick={() => handleDelete(site.name, displayName(site))}
+                      aria-label={`Borrar ${displayName(site)}`}
                       title="Borrar"
                       className="rounded p-1 text-[color:var(--text-secondary)] transition-colors hover:text-[#FF718A]"
                     >
@@ -219,7 +242,7 @@ export function AdminSitesSection() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <form onSubmit={handleSubmit} className="glass-panel w-full max-w-sm space-y-4 p-6">
             <h3 className="font-display text-base font-semibold text-[color:var(--text)]">
-              {form.name}
+              {form.label}
             </h3>
 
             <label className="block text-sm text-[color:var(--text-secondary)]">
