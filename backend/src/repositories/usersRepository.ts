@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import { PublicUser, Role } from "../types";
 import { DATA_DIR, SEED_DIR } from "../lib/dataDir";
+import { accessFromAllowedQueues, QueueAccess } from "../znuny/queueAccess";
+import { migrateUsersV2, StoredUser, UsersFileV2 } from "../migrations/usersV2";
 
 /**
  * Capa de acceso a datos de usuarios/roles. Mismo patrón que
@@ -15,20 +17,7 @@ const USERS_PATH = path.join(DATA_DIR, "users.json");
 const SEED_PATH = path.join(SEED_DIR, "users.seed.json");
 const PASSWORD_HASH_COST = 12; // mismo costo que scripts/hashPassword.ts
 
-interface StoredUser {
-  username: string;
-  email: string;
-  passwordHash: string;
-  role: Role;
-  resetToken: string | null;
-  resetTokenExpiry: number | null; // epoch ms
-  /** Array vacío = sin restricción (ve todos los departamentos, comportamiento actual). Ver getAllowedDepartments. */
-  allowedDepartments: string[];
-}
-
-interface UsersFile {
-  users: StoredUser[];
-}
+type UsersFile = UsersFileV2;
 
 function normalizeUsername(raw: string): string {
   return raw.trim().toLowerCase();
@@ -60,8 +49,20 @@ function ensureUsersFileExists(): void {
   fs.copyFileSync(SEED_PATH, USERS_PATH);
 }
 
+// schemaVersion: 2 se persiste SIEMPRE: sin él la migración correría en cada
+// arranque y convertiría a un usuario nuevo "sin configurar" en [] (todas las colas).
 function writeUsersFile(users: StoredUser[]): void {
-  fs.writeFileSync(USERS_PATH, JSON.stringify({ users }, null, 2) + "\n", "utf-8");
+  fs.writeFileSync(
+    USERS_PATH,
+    JSON.stringify({ schemaVersion: 2, users }, null, 2) + "\n",
+    "utf-8"
+  );
+}
+
+function backupSuffix(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
 }
 
 function toPublicUser(stored: StoredUser): PublicUser {
@@ -70,6 +71,7 @@ function toPublicUser(stored: StoredUser): PublicUser {
     email: stored.email,
     role: stored.role,
     allowedDepartments: stored.allowedDepartments,
+    allowedQueues: stored.allowedQueues ?? null,
   };
 }
 
@@ -93,11 +95,18 @@ export interface UsersRepository {
     password: string;
     role: Role;
     allowedDepartments?: string[];
+    allowedQueues?: string[];
   }): Promise<CreateUserResult>;
   setRole(username: string, role: Role): PublicUser | undefined;
   updateProfile(
     currentUsername: string,
-    updates: { username?: string; email?: string; allowedDepartments?: string[] }
+    updates: {
+      username?: string;
+      email?: string;
+      allowedDepartments?: string[];
+      /** null borra el campo (vuelve a "sin acceso"). */
+      allowedQueues?: string[] | null;
+    }
   ): UpdateProfileResult;
   setResetToken(username: string, token: string, expiresAt: number): void;
   resetPasswordWithToken(token: string, newPassword: string): Promise<ResetPasswordWithTokenResult>;
@@ -107,6 +116,8 @@ export interface UsersRepository {
   countAdmins(): number;
   /** null = sin restricción (ve todos los departamentos). Siempre lee el JSON en memoria más reciente, nunca un valor cacheado en el JWT — así un cambio de permisos por el admin aplica de inmediato, sin esperar a que expire la sesión. */
   getAllowedDepartments(username: string): string[] | null;
+  /** Acceso a colas de Znuny; siempre lee el estado en memoria más reciente. */
+  getQueueAccess(username: string): QueueAccess;
 }
 
 class JsonUsersRepository implements UsersRepository {
@@ -114,7 +125,17 @@ class JsonUsersRepository implements UsersRepository {
 
   constructor() {
     ensureUsersFileExists();
-    this.users = readUsersFile(USERS_PATH).users;
+    const file = readUsersFile(USERS_PATH);
+    const migrated = migrateUsersV2(file);
+    if (migrated.changed) {
+      const backup = `${USERS_PATH}.bak-${backupSuffix()}`;
+      fs.copyFileSync(USERS_PATH, backup);
+      console.log(`[usersRepository] migrando users.json a v2 (respaldo: ${backup}).`);
+      this.users = migrated.file.users;
+      writeUsersFile(this.users);
+    } else {
+      this.users = file.users;
+    }
   }
 
   findAll(): PublicUser[] {
@@ -137,6 +158,7 @@ class JsonUsersRepository implements UsersRepository {
     password: string;
     role: Role;
     allowedDepartments?: string[];
+    allowedQueues?: string[];
   }): Promise<CreateUserResult> {
     const targetUsername = normalizeUsername(input.username);
     if (this.users.some((u) => normalizeUsername(u.username) === targetUsername)) {
@@ -160,6 +182,7 @@ class JsonUsersRepository implements UsersRepository {
       resetTokenExpiry: null,
       allowedDepartments: input.allowedDepartments ?? [],
     };
+    if (input.allowedQueues !== undefined) stored.allowedQueues = input.allowedQueues;
     this.users.push(stored);
     writeUsersFile(this.users);
     return { ok: true, user: toPublicUser(stored) };
@@ -175,7 +198,13 @@ class JsonUsersRepository implements UsersRepository {
 
   updateProfile(
     currentUsername: string,
-    updates: { username?: string; email?: string; allowedDepartments?: string[] }
+    updates: {
+      username?: string;
+      email?: string;
+      allowedDepartments?: string[];
+      /** null borra el campo (vuelve a "sin acceso"). */
+      allowedQueues?: string[] | null;
+    }
   ): UpdateProfileResult {
     const user = this.findByUsername(currentUsername);
     if (!user) return { ok: false, error: "not-found" };
@@ -194,6 +223,8 @@ class JsonUsersRepository implements UsersRepository {
     if (updates.username !== undefined) user.username = updates.username.trim();
     if (updates.email !== undefined) user.email = updates.email.trim();
     if (updates.allowedDepartments !== undefined) user.allowedDepartments = updates.allowedDepartments;
+    if (updates.allowedQueues === null) delete user.allowedQueues;
+    else if (updates.allowedQueues !== undefined) user.allowedQueues = updates.allowedQueues;
     writeUsersFile(this.users);
     return { ok: true, user: toPublicUser(user) };
   }
@@ -248,6 +279,10 @@ class JsonUsersRepository implements UsersRepository {
     const user = this.findByUsername(username);
     const allowed = user?.allowedDepartments ?? [];
     return allowed.length > 0 ? allowed : null;
+  }
+
+  getQueueAccess(username: string): QueueAccess {
+    return accessFromAllowedQueues(this.findByUsername(username)?.allowedQueues);
   }
 }
 

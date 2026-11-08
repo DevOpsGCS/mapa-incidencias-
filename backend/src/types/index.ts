@@ -8,6 +8,8 @@ export interface PublicUser {
   role: Role;
   /** Array vacío = sin restricción, ve todos los departamentos. Array con nombres = solo ve esos (deben coincidir en vivo con ost_department). */
   allowedDepartments: string[];
+  /** null = campo ausente (sin acceso a Znuny); [] = todas las colas; lista = esas colas y subcolas. */
+  allowedQueues: string[] | null;
 }
 
 export type TicketPriority = "low" | "normal" | "high" | "urgente";
@@ -45,6 +47,8 @@ export interface Site {
   type: SiteType;
   lat: number;
   lng: number;
+  /** Clave de Ubicacion en Znuny; null si el sitio solo existe en el histórico osTicket. */
+  znunyKey: string | null;
 }
 
 export interface SiteStat {

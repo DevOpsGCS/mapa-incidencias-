@@ -3,6 +3,7 @@ import path from "path";
 import { normalizeName } from "../lib/normalizeName";
 import { DATA_DIR, SEED_DIR } from "../lib/dataDir";
 import { Site } from "../types";
+import { migrateSitesV2, RawSite, SitesFileV2 } from "../migrations/sitesV2";
 
 /**
  * Capa de acceso a datos de sitios.
@@ -30,16 +31,7 @@ import { Site } from "../types";
 const METADATA_PATH = path.join(DATA_DIR, "site-metadata.json");
 const SEED_PATH = path.join(SEED_DIR, "site-metadata.seed.json");
 
-interface RawSite {
-  name: string;
-  type: Site["type"];
-  lat: number;
-  lng: number;
-}
-
-interface MetadataFile {
-  sites: RawSite[];
-}
+type MetadataFile = SitesFileV2;
 
 function readMetadataFile(filePath: string): MetadataFile {
   const raw = fs.readFileSync(filePath, "utf-8");
@@ -54,20 +46,41 @@ function ensureMetadataFileExists(): void {
   fs.copyFileSync(SEED_PATH, METADATA_PATH);
 }
 
+// schemaVersion: 2 se persiste siempre para que la migración no vuelva a correr.
 function writeMetadataFile(sites: RawSite[]): void {
-  fs.writeFileSync(METADATA_PATH, JSON.stringify({ sites }, null, 2) + "\n", "utf-8");
+  fs.writeFileSync(
+    METADATA_PATH,
+    JSON.stringify({ schemaVersion: 2, sites }, null, 2) + "\n",
+    "utf-8"
+  );
+}
+
+function backupSuffix(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
 }
 
 function toSite(raw: RawSite): Site {
   // El nombre configurado ES el id — no hay ningún id numérico de osTicket
   // que sirva acá, porque un mismo sitio puede aparecer con ids distintos
   // en list_id=2 (Sitio de Aduana) y list_id=7 (CCTV Sitios).
-  return { id: raw.name, name: raw.name, type: raw.type, lat: raw.lat, lng: raw.lng };
+  return {
+    id: raw.name,
+    name: raw.name,
+    type: raw.type as Site["type"],
+    lat: raw.lat,
+    lng: raw.lng,
+    znunyKey: raw.znunyKey ?? null,
+  };
 }
 
 export interface SitesRepository {
   findAll(): Site[];
   findByNormalizedName(name: string): Site | undefined;
+  findByZnunyKey(key: string): Site | undefined;
+  /** Asigna type/lat/lng al sitio de esa clave de Znuny (lo crea si no existe). */
+  upsertByZnunyKey(input: { znunyKey: string; type: Site["type"]; lat: number; lng: number }): Site;
   upsert(site: RawSite): Site;
   remove(name: string): boolean;
 }
@@ -77,17 +90,43 @@ class JsonSitesRepository implements SitesRepository {
 
   constructor() {
     ensureMetadataFileExists();
-    this.sites = readMetadataFile(METADATA_PATH).sites;
+    const file = readMetadataFile(METADATA_PATH);
+    const migrated = migrateSitesV2(file);
+    if (migrated.changed) {
+      const backup = `${METADATA_PATH}.bak-${backupSuffix()}`;
+      fs.copyFileSync(METADATA_PATH, backup);
+      console.log(`[sitesRepository] migrando site-metadata.json a v2 (respaldo: ${backup}).`);
+      this.sites = migrated.file.sites;
+      writeMetadataFile(this.sites);
+    } else {
+      this.sites = file.sites;
+    }
   }
 
   findAll(): Site[] {
-    return this.sites.map(toSite);
+    return this.sites.filter((s) => !s.legacyOnly).map(toSite);
   }
 
   findByNormalizedName(name: string): Site | undefined {
     const target = normalizeName(name);
     const match = this.sites.find((site) => normalizeName(site.name) === target);
     return match ? toSite(match) : undefined;
+  }
+
+  findByZnunyKey(key: string): Site | undefined {
+    const match = this.sites.find((s) => !s.legacyOnly && s.znunyKey === key);
+    return match ? toSite(match) : undefined;
+  }
+
+  upsertByZnunyKey(input: { znunyKey: string; type: Site["type"]; lat: number; lng: number }): Site {
+    const index = this.sites.findIndex((s) => s.znunyKey === input.znunyKey);
+    if (index >= 0) {
+      this.sites[index] = { ...this.sites[index], type: input.type, lat: input.lat, lng: input.lng };
+    } else {
+      this.sites.push({ name: input.znunyKey, ...input });
+    }
+    writeMetadataFile(this.sites);
+    return toSite(this.sites[index >= 0 ? index : this.sites.length - 1]);
   }
 
   /** Agrega el sitio o, si ya existe (por nombre normalizado), reemplaza su type/lat/lng. */
