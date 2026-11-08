@@ -4,8 +4,9 @@ import { playTicketChime } from "../lib/notificationSound";
 import { computeZnunyStats } from "../lib/znunyStats";
 import { QueueAccess, Site, Ticket } from "../types";
 import { applyDashboardEvent } from "./dashboardReducer";
+import { decideStatusChangeNotification } from "./statusChangeNotification";
 import { useCatalog } from "./useCatalog";
-import { StatusChangedPayload, useSocket } from "./useSocket";
+import { HeartbeatPayload, StatusChangedPayload, useSocket } from "./useSocket";
 
 export { applyDashboardEvent } from "./dashboardReducer";
 
@@ -18,6 +19,8 @@ interface DashboardState {
   connected: boolean;
   lastEventAt: Date | null;
   lastHeartbeatAt: Date | null;
+  /** false si el último latido avisó que el backend no pudo consultar Znuny. */
+  serviceDeskOk: boolean;
 }
 
 export interface TicketNotification {
@@ -40,6 +43,7 @@ export function useDashboardData() {
     connected: false,
     lastEventAt: null,
     lastHeartbeatAt: null,
+    serviceDeskOk: true,
   });
   const [notifications, setNotifications] = useState<TicketNotification[]>([]);
   const { catalog, error: catalogError, refresh: refreshCatalog } = useCatalog();
@@ -86,11 +90,14 @@ export function useDashboardData() {
     });
   }, []);
 
+  // Eventos de historial ya avisados (acotado: solo hace falta recordar los recientes).
+  const notifiedStatusKeysRef = useRef<Set<string>>(new Set());
+
   /**
    * Ticket que cambió de estado según el poller de estados de Znuny. El
-   * evento trae el ticket completo: se upsertea. Solo suena/notifica si el
-   * cliente ya tenía el ticket y su estado realmente cambió (si la sync
-   * normal ya se adelantó, no hay nada nuevo que avisar).
+   * evento trae el ticket completo: se upsertea. Suena/notifica según
+   * decideStatusChangeNotification (from !== to del evento, aunque un
+   * ticket:updated del mismo ciclo ya haya traído el estado nuevo).
    */
   const handleStatusChanged = useCallback(
     (payload: StatusChangedPayload) => {
@@ -102,14 +109,22 @@ export function useDashboardData() {
         tickets: applyDashboardEvent(prev.tickets, { type: "status_changed", ...payload }),
         lastEventAt: new Date(),
       }));
-      if (existing.state === payload.ticket.state) return;
+
+      const notified = notifiedStatusKeysRef.current;
+      const decision = decideStatusChangeNotification(payload, existing, notified);
+      if (!decision.notify || !decision.key) return;
+      notified.add(decision.key);
+      if (notified.size > 500) {
+        // Set conserva orden de inserción: se descarta lo más viejo.
+        notifiedStatusKeysRef.current = new Set([...notified].slice(-250));
+      }
 
       playTicketChime();
       pushNotification({
         id: `${payload.id}-status-${Date.now()}`,
         kind: "status_changed",
         ticket: payload.ticket,
-        previousState: existing.state,
+        previousState: decision.previousState,
       });
     },
     [pushNotification]
@@ -119,8 +134,9 @@ export function useDashboardData() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  const handleHeartbeat = useCallback(() => {
-    setState((prev) => ({ ...prev, lastHeartbeatAt: new Date() }));
+  const handleHeartbeat = useCallback((payload: HeartbeatPayload) => {
+    // Latidos sin `ok` (formato viejo) cuentan como sanos.
+    setState((prev) => ({ ...prev, lastHeartbeatAt: new Date(), serviceDeskOk: payload?.ok !== false }));
   }, []);
 
   /**

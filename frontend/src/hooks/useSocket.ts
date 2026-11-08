@@ -3,13 +3,17 @@ import { io, Socket } from "socket.io-client";
 import { API_BASE_URL } from "../api/client";
 import { Ticket } from "../types";
 
-interface HeartbeatPayload {
+export interface HeartbeatPayload {
   at: string;
-  checked: number;
+  /** false = el backend está vivo pero no pudo consultar Znuny en este ciclo. */
+  ok?: boolean;
+  checked?: number;
 }
 
 export interface StatusChangedPayload {
   id: number;
+  /** Id de la fila de ticket_history que originó el evento (deduplicación). */
+  historyId?: number;
   from: string | null;
   to: string;
   /** Ticket completo ya actualizado: el cliente lo upsertea tal cual. */

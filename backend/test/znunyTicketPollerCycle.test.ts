@@ -10,6 +10,7 @@ vi.mock("../src/znuny/ticketsRepository", () => ({
 import {
   initTicketPollerState,
   runTicketCycle,
+  startZnunyTicketPoller,
   type TicketPollerState,
 } from "../src/sockets/znunyTicketPoller";
 
@@ -50,15 +51,15 @@ describe("runTicketCycle", () => {
     expect(state.queues.get(11)).toBe("CCTV");
   });
 
-  it("cambio de cola -> updated a las rooms nuevas y removed a las viejas", async () => {
+  it("cambio de cola -> removed a las rooms viejas ANTES que updated a las nuevas", async () => {
     const io = fakeIo();
     const state = newState();
     state.queues.set(5, "CCTV");
     queryMock.mockResolvedValue([{ id: 5, change_time: "2026-11-08 10:00:04" }]);
     findMock.mockResolvedValue([t(5, "Tecnología")]);
     await runTicketCycle(io as never, state);
-    expect(io.events.map((e) => e.event)).toEqual(["ticket:updated", "ticket:removed"]);
-    expect(io.events[1]).toMatchObject({ rooms: ["queue:CCTV"], payload: { id: 5 } });
+    expect(io.events.map((e) => e.event)).toEqual(["ticket:removed", "ticket:updated"]);
+    expect(io.events[0]).toMatchObject({ rooms: ["queue:CCTV"], payload: { id: 5 } });
   });
 
   it("ticket que pasa a merged/removed -> removed a su última cola", async () => {
@@ -115,8 +116,8 @@ describe("estado inicial precargado", () => {
     queryMock.mockResolvedValue([{ id: 5, change_time: "2026-11-08 10:00:09" }]);
     findMock.mockResolvedValue([t(5, "Tecnología")]);
     await runTicketCycle(io as never, state);
-    expect(io.events.map((e) => e.event)).toEqual(["ticket:updated", "ticket:removed"]);
-    expect(io.events[1]).toMatchObject({ rooms: ["queue:CCTV"], payload: { id: 5 } });
+    expect(io.events.map((e) => e.event)).toEqual(["ticket:removed", "ticket:updated"]);
+    expect(io.events[0]).toMatchObject({ rooms: ["queue:CCTV"], payload: { id: 5 } });
   });
 
   it("ticket precargado que pasa a merged/removed en el primer ciclo -> removed", async () => {
@@ -134,5 +135,31 @@ describe("estado inicial precargado", () => {
         payload: { id: 5 },
       },
     ]);
+  });
+});
+
+describe("sync:heartbeat", () => {
+  it("ciclo exitoso -> heartbeat con ok:true", async () => {
+    const io = fakeIo();
+    queryMock.mockResolvedValue([]);
+    findMock.mockResolvedValue([]);
+    await runTicketCycle(io as never, newState());
+    expect(io.emit).toHaveBeenCalledWith("sync:heartbeat", expect.objectContaining({ ok: true }));
+  });
+
+  it("ciclo fallido (Znuny caído) -> heartbeat igual, con ok:false", async () => {
+    vi.useFakeTimers();
+    try {
+      const io = fakeIo();
+      queryMock.mockRejectedValue(new Error("túnel caído"));
+      const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      startZnunyTicketPoller(io as never);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(io.emit).toHaveBeenCalledWith("sync:heartbeat", expect.objectContaining({ ok: false }));
+      errSpy.mockRestore();
+    } finally {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
   });
 });

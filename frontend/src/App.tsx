@@ -23,6 +23,7 @@ export default function App() {
     error,
     connected,
     lastHeartbeatAt,
+    serviceDeskOk,
     notifications,
     dismissNotification,
   } = useDashboardData();
@@ -36,6 +37,7 @@ export default function App() {
         onViewChange={setView}
         connected={connected}
         lastHeartbeatAt={lastHeartbeatAt}
+        serviceDeskOk={serviceDeskOk}
         isAdmin={user?.role === "admin"}
         onOpenAdmin={() => navigate("/admin/sites")}
         onLogout={logout}
@@ -46,14 +48,18 @@ export default function App() {
         onDismiss={dismissNotification}
       />
 
-      {queueAccess === "none" && <NoQueueAccessBanner />}
-
-      {error && (
-        <div className="hud-scale fixed left-1/2 top-[78px] z-40 -translate-x-1/2 rounded-lg border border-[#FF4D6D]/40 bg-[#2a0f16]/90 px-4 py-2 text-sm text-[#ff8fa3]">
-          Error cargando datos: {error}.
-          {/* Solo un fallo de red (sin respuesta del backend) sugiere revisar la API local. */}
-          {/failed to fetch|networkerror|load failed/i.test(error) &&
-            " Verifica que la API esté corriendo en el puerto 4000."}
+      {/* Avisos apilados en un único contenedor fijo (antes compartían top y se tapaban). */}
+      {(queueAccess === "none" || error) && (
+        <div className="hud-scale pointer-events-none fixed left-1/2 top-[78px] z-40 flex -translate-x-1/2 flex-col items-center gap-2">
+          {queueAccess === "none" && <NoQueueAccessBanner />}
+          {error && (
+            <div className="rounded-lg border border-[#FF4D6D]/40 bg-[#2a0f16]/90 px-4 py-2 text-sm text-[#ff8fa3]">
+              Error cargando datos: {error}.
+              {/* Solo un fallo de red (sin respuesta del backend) sugiere revisar la API local. */}
+              {/failed to fetch|networkerror|load failed/i.test(error) &&
+                " Verifica que la API esté corriendo en el puerto 4000."}
+            </div>
+          )}
         </div>
       )}
 

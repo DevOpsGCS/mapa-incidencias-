@@ -29,6 +29,8 @@ describe("runStateCycle", () => {
       ["nuevo", "abierto"],
       ["abierto", "cerrado"],
     ]);
+    // historyId = fila de ticket_history: el frontend deduplica avisos con él.
+    expect(events.map((e) => e.payload.historyId)).toEqual([101, 102]);
     expect(state.lastHistoryId).toBe(102);
   });
 });

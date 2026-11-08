@@ -71,12 +71,15 @@ export async function runTicketCycle(io: Server, state: TicketPollerState): Prom
     if (newIds.has(ticket.id)) {
       io.to(rooms).emit("ticket:new", ticket);
     } else {
-      io.to(rooms).emit("ticket:updated", ticket);
+      // removed ANTES que updated: un socket que está en una room vieja y en
+      // una nueva (p. ej. queue:CCTV y queue:Tecnología) recibe ambos; como el
+      // reducer hace upsert en updated, en este orden el ticket queda visible.
       const previous = nextQueues.get(ticket.id);
       if (previous !== undefined && previous !== ticket.queue) {
         const gone = removalRooms(previous, ticket.queue);
         if (gone.length > 0) io.to(gone).emit("ticket:removed", { id: ticket.id });
       }
+      io.to(rooms).emit("ticket:updated", ticket);
     }
     nextQueues.set(ticket.id, ticket.queue);
   }
@@ -95,7 +98,7 @@ export async function runTicketCycle(io: Server, state: TicketPollerState): Prom
   state.seen = changed.seen;
   state.queues = nextQueues;
 
-  io.emit("sync:heartbeat", { at: new Date().toISOString(), checked: ids.size });
+  io.emit("sync:heartbeat", { at: new Date().toISOString(), ok: true, checked: ids.size });
 }
 
 export function startZnunyTicketPoller(io: Server): void {
@@ -111,6 +114,9 @@ export function startZnunyTicketPoller(io: Server): void {
       }
     } catch (err) {
       console.error("[znuny-poller] error en el ciclo de tickets:", err);
+      // Latido igual (ok:false): el backend sigue vivo aunque Znuny no. Sin
+      // esto el watchdog de las TVs reconectaría en bucle con el túnel caído.
+      io.emit("sync:heartbeat", { at: new Date().toISOString(), ok: false });
     }
     setTimeout(tick, POLL_INTERVAL_MS);
   };

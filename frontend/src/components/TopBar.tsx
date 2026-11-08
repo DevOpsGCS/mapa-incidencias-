@@ -11,6 +11,7 @@ interface TopBarProps {
   onViewChange: (view: DashboardView) => void;
   connected: boolean;
   lastHeartbeatAt: Date | null;
+  serviceDeskOk: boolean;
   isAdmin: boolean;
   onOpenAdmin: () => void;
   onLogout: () => void;
@@ -21,6 +22,7 @@ export function TopBar({
   onViewChange,
   connected,
   lastHeartbeatAt,
+  serviceDeskOk,
   isAdmin,
   onOpenAdmin,
   onLogout,
@@ -52,7 +54,7 @@ export function TopBar({
           </ViewButton>
         </nav>
         <SoundToggle />
-        <SyncStatus connected={connected} lastHeartbeatAt={lastHeartbeatAt} />
+        <SyncStatus connected={connected} lastHeartbeatAt={lastHeartbeatAt} serviceDeskOk={serviceDeskOk} />
         {isAdmin && (
           <button
             type="button"

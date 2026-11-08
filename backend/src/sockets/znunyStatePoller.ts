@@ -37,6 +37,9 @@ export async function runStateCycle(io: Server, state: StatePollerState): Promis
     if (!ticket) continue; // merged/removed
     io.to(roomsForTicketQueue(ticket.queue)).emit("ticket:status_changed", {
       id: ticket.id,
+      // Id de la fila de ticket_history: el cliente lo usa para no avisar dos
+      // veces del mismo cambio.
+      historyId: row.id,
       from: parseStateUpdate(row.name)?.from ?? null,
       to: parseStateUpdate(row.name)?.to ?? ticket.state,
       ticket,

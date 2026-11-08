@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 interface SyncStatusProps {
   connected: boolean;
   lastHeartbeatAt: Date | null;
+  /** false = el último latido avisó que el backend no pudo consultar Znuny. */
+  serviceDeskOk: boolean;
 }
 
 function formatCounter(seconds: number): string {
@@ -17,7 +19,7 @@ function formatCounter(seconds: number): string {
 const STALE_AFTER_SECONDS = 50;
 
 /** Indicador de sincronización: "late" con cada poll real del backend (haya o no cambios). */
-export function SyncStatus({ connected, lastHeartbeatAt }: SyncStatusProps) {
+export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncStatusProps) {
   const [, forceTick] = useState(0);
 
   useEffect(() => {
@@ -38,6 +40,10 @@ export function SyncStatus({ connected, lastHeartbeatAt }: SyncStatusProps) {
   } else if (secondsSince === null) {
     label = "--";
     color = "var(--muted)";
+  } else if (!serviceDeskOk) {
+    // El backend late pero no llega a Znuny (p. ej. túnel caído): no es "sano".
+    label = "sin conexión con la mesa de servicio";
+    color = "var(--red)";
   } else if (isStale) {
     label = formatCounter(secondsSince);
     color = "var(--amber)";
@@ -50,13 +56,14 @@ export function SyncStatus({ connected, lastHeartbeatAt }: SyncStatusProps) {
     <div
       className="glass-panel mono-label flex items-center gap-2 rounded-full px-3.5 py-2 text-[11.5px]"
       style={{ color }}
+      title={!serviceDeskOk ? "El dashboard sigue conectado, pero no puede consultar Znuny" : undefined}
     >
       <span className="relative flex h-1.5 w-1.5">
         <span
           className="absolute inline-flex h-full w-full rounded-full"
           style={{ background: color }}
         />
-        {connected && secondsSince !== null && !isStale && (
+        {connected && secondsSince !== null && !isStale && serviceDeskOk && (
           <span
             key={lastHeartbeatAt?.getTime()}
             className="heartbeat-blip absolute inline-flex h-full w-full rounded-full"
