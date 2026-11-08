@@ -47,6 +47,11 @@ app.use("/api", catalogRouter);
 // Servidor http, socket.io, pollers y listen solo al ejecutar el proceso
 // (node dist/index.js); las pruebas importan `app` sin abrir puertos.
 if (require.main === module) {
+  if (!process.env.ZNUNY_BASE_URL) {
+    console.warn(
+      'ZNUNY_BASE_URL no está definida: los links "Ver en Znuny" del dashboard quedarán rotos. Configurala en backend/.env.'
+    );
+  }
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: { origin: ALLOWED_ORIGINS, credentials: true },

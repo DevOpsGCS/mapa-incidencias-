@@ -21,9 +21,11 @@ export function StatusChart({ stats }: StatusChartProps) {
       <h3 className="mono-label text-[11px] text-[color:var(--muted)]">Tickets por estado</h3>
       <div className="mt-2 h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <XAxis
               dataKey="label"
+              interval={0}
+              tickFormatter={(value: string) => (value.length > 16 ? `${value.slice(0, 15)}…` : value)}
               tick={{ fill: CHART_CHROME.mutedText, fontSize: 12 }}
               axisLine={{ stroke: CHART_CHROME.axis }}
               tickLine={false}
@@ -33,7 +35,7 @@ export function StatusChart({ stats }: StatusChartProps) {
               tick={{ fill: CHART_CHROME.mutedText, fontSize: 12 }}
               axisLine={false}
               tickLine={false}
-              width={32}
+              width={40}
             />
             <Tooltip
               cursor={{ fill: "rgba(255,255,255,0.04)" }}
