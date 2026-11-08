@@ -8,3 +8,28 @@ export interface Catalog {
   services: string[];
   topPriorityId: number; // prioridad válida de mayor id (hoy "crítica")
 }
+
+/** Ticket de Znuny (spec §5.1) más la etiqueta en vivo del sitio. */
+export interface ZnunyTicket {
+  id: number;
+  tn: string;
+  title: string;
+  queue: string;
+  state: string;
+  stateType: StateType;
+  priorityId: number;
+  priority: string;
+  type: string | null;
+  service: string | null;
+  sla: string | null;
+  owner: string;
+  responsible: string | null;
+  customer: string;
+  siteId: string;
+  siteKey: string | null;
+  siteName: string | null;
+  createdAt: string;
+  changedAt: string;
+  slaDueAt: string | null;
+  znunyUrl: string;
+}
