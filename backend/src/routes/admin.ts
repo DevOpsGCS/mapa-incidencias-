@@ -1,7 +1,10 @@
-import { Router } from "express";
+import { NextFunction, Response, Router } from "express";
 import { readOnlyQuery } from "../legacy/osticket/db";
 import { requireRole } from "../auth";
 import { normalizeName } from "../lib/normalizeName";
+import { respondZnunyError } from "../lib/znunyErrors";
+import { getCatalog, getSiteOptions } from "../znuny/catalogRepository";
+import { ZnunyUnavailableError } from "../znuny/db";
 import { sitesRepository } from "../repositories/sitesRepository";
 import { usersRepository } from "../repositories/usersRepository";
 import { Role, SiteType } from "../types";
@@ -12,19 +15,26 @@ export const adminRouter = Router();
 // para cualquier usuario (admin o normal) vive en routes/auth.ts.
 adminRouter.use(requireRole("admin"));
 
-// "Sitio de Aduana" (list_id=2) + "CCTV Sitios" (list_id=7): las mismas dos
-// listas que usa ticketsRepository para resolver el sitio de cada ticket
-// (ver comentario en SITE_LIST_IDS ahí). Un sitio "real" es cualquier valor
-// vigente en cualquiera de las dos.
-const SITE_LIST_IDS = [2, 7];
 const VALID_SITE_TYPES: SiteType[] = ["aduana_terrestre", "aduana_maritima", "aduana_aerea", "sede"];
 const VALID_ROLES: Role[] = ["admin", "normal"];
 
-async function loadRealSiteNames(): Promise<string[]> {
-  const rows = await readOnlyQuery<{ value: string }>(
-    `SELECT DISTINCT value FROM ost_list_items WHERE list_id IN (${SITE_LIST_IDS.join(",")}) ORDER BY id`
-  );
-  return rows.map((row) => row.value);
+const LEGACY_UNAVAILABLE_CODES = new Set([
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "PROTOCOL_CONNECTION_LOST",
+  "ER_ACCESS_DENIED_ERROR",
+]);
+
+/** osTicket inalcanzable (túnel caído, DB apagada) -> 503 claro en vez de 500. */
+function respondLegacyDbError(error: unknown, res: Response, next: NextFunction): void {
+  const code = (error as { code?: string } | null)?.code;
+  if (code && LEGACY_UNAVAILABLE_CODES.has(code)) {
+    res.status(503).json({ error: "osTicket no disponible" });
+    return;
+  }
+  next(error);
 }
 
 /** Departamentos reales de osTicket — misma regla de oro que sitios: nunca hardcodear, siempre en vivo contra ost_department. */
@@ -64,26 +74,16 @@ function resolveAllowedDepartments(raw: unknown, realNames: string[]): ResolveAl
   return { ok: true, departments };
 }
 
-/** Sitios reales de osTicket que todavía no tienen una entrada en site-metadata.json. */
+/** Opciones de Ubicacion de Znuny que todavía no tienen un sitio configurado (tipo + lat/lng). */
 adminRouter.get("/sites/unmapped", async (_req, res, next) => {
   try {
-    const realNames = await loadRealSiteNames();
-    const configuredNormalized = new Set(
-      sitesRepository.findAll().map((site) => normalizeName(site.name))
+    const configured = new Set(
+      sitesRepository.findAll().map((site) => site.znunyKey).filter((k): k is string => !!k)
     );
-
-    const seen = new Set<string>();
-    const unmapped: string[] = [];
-    for (const name of realNames) {
-      const key = normalizeName(name);
-      if (configuredNormalized.has(key) || seen.has(key)) continue;
-      seen.add(key);
-      unmapped.push(name);
-    }
-
-    res.json(unmapped);
+    const options = await getSiteOptions();
+    res.json(options.filter((option) => !configured.has(option.key)));
   } catch (error) {
-    next(error);
+    respondZnunyError(error, res, next);
   }
 });
 
@@ -91,26 +91,30 @@ adminRouter.get("/sites", (_req, res) => {
   res.json(sitesRepository.findAll());
 });
 
+adminRouter.get("/queues", async (_req, res, next) => {
+  try {
+    res.json((await getCatalog()).queues);
+  } catch (error) {
+    respondZnunyError(error, res, next);
+  }
+});
+
 /**
- * Asigna coordenadas (lat/lng) y tipo a un sitio que YA existe en osTicket —
- * este endpoint nunca "crea" un sitio en el sentido de inventarlo. El name
- * recibido se valida en vivo contra ost_list_items antes de guardar nada:
- * si no coincide (comparación normalizada) con ningún valor real, se
- * rechaza con 400. Esto vale tanto si la petición viene del panel como si
- * viene de Postman/curl directo — la validación es del backend, nunca se
- * confía en que el frontend ya filtró los nombres válidos.
+ * Asigna tipo y coordenadas a una opción de Ubicacion que YA existe en Znuny —
+ * nunca "inventa" un sitio: la clave se valida en vivo contra getSiteOptions()
+ * (también si la petición viene de curl directo).
  */
 adminRouter.post("/sites", async (req, res, next) => {
   try {
-    const { name, type, lat, lng } = (req.body ?? {}) as {
-      name?: unknown;
+    const { znunyKey, type, lat, lng } = (req.body ?? {}) as {
+      znunyKey?: unknown;
       type?: unknown;
       lat?: unknown;
       lng?: unknown;
     };
 
-    if (typeof name !== "string" || name.trim().length === 0) {
-      res.status(400).json({ error: "name es requerido." });
+    if (typeof znunyKey !== "string" || znunyKey.trim().length === 0) {
+      res.status(400).json({ error: "znunyKey es requerido." });
       return;
     }
     if (typeof type !== "string" || !VALID_SITE_TYPES.includes(type as SiteType)) {
@@ -127,22 +131,23 @@ adminRouter.post("/sites", async (req, res, next) => {
       return;
     }
 
-    const realNames = await loadRealSiteNames();
-    const target = normalizeName(name);
-    const isRealSite = realNames.some((real) => normalizeName(real) === target);
-    if (!isRealSite) {
+    const options = await getSiteOptions();
+    if (!options.some((option) => option.key === znunyKey)) {
       res.status(400).json({
-        error: `"${name}" no existe como sitio real en osTicket (ost_list_items, list_id IN (${SITE_LIST_IDS.join(
-          ","
-        )})). No se puede asignar coordenadas a un sitio inventado.`,
+        error: `"${znunyKey}" no existe como opción del campo Ubicacion en Znuny. No se puede asignar coordenadas a un sitio inventado.`,
       });
       return;
     }
 
-    const saved = sitesRepository.upsert({ name: name.trim(), type: type as SiteType, lat, lng });
+    const saved = sitesRepository.upsertByZnunyKey({
+      znunyKey,
+      type: type as SiteType,
+      lat,
+      lng,
+    });
     res.status(200).json(saved);
   } catch (error) {
-    next(error);
+    respondZnunyError(error, res, next);
   }
 });
 
@@ -160,26 +165,67 @@ adminRouter.get("/departments", async (_req, res, next) => {
   try {
     res.json(await loadRealDepartmentNames());
   } catch (error) {
-    next(error);
+    respondLegacyDbError(error, res, next);
   }
 });
 
 // --- Gestión de usuarios (admin-only) ---------------------------------
 
-adminRouter.get("/users", (_req, res) => {
-  res.json(usersRepository.findAll());
+// Una cola renombrada en Znuny deja un nombre viejo en allowedQueues: se marca
+// en unknownQueues (el usuario pierde acceso a esa cola sin error). Si Znuny
+// está caído no se puede saber, se devuelve [] sin fallar.
+adminRouter.get("/users", async (_req, res, next) => {
+  try {
+    let known: Set<string> | null = null;
+    try {
+      known = new Set((await getCatalog()).queues.map((q) => q.name));
+    } catch (error) {
+      if (!(error instanceof ZnunyUnavailableError)) throw error;
+    }
+    res.json(
+      usersRepository.findAll().map((user) => ({
+        ...user,
+        unknownQueues: known ? (user.allowedQueues ?? []).filter((q) => !known!.has(q)) : [],
+      }))
+    );
+  } catch (error) {
+    next(error);
+  }
 });
+
+type ResolveQueuesResult =
+  | { ok: true; queues: string[] | null | undefined }
+  | { ok: false; error: string };
+
+/** Valida allowedQueues contra las colas existentes en Znuny (400 listando las desconocidas). */
+async function resolveAllowedQueues(raw: unknown): Promise<ResolveQueuesResult> {
+  if (raw === undefined) return { ok: true, queues: undefined };
+  if (raw === null) return { ok: true, queues: null };
+  if (!Array.isArray(raw) || !raw.every((v) => typeof v === "string")) {
+    return { ok: false, error: "allowedQueues debe ser un array de strings o null." };
+  }
+  const known = new Set((await getCatalog()).queues.map((q) => q.name));
+  const unknown = raw.filter((q) => !known.has(q));
+  if (unknown.length > 0) {
+    return {
+      ok: false,
+      error: `Colas inexistentes en Znuny: ${unknown.map((q) => `"${q}"`).join(", ")}.`,
+    };
+  }
+  return { ok: true, queues: [...new Set(raw)] };
+}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 adminRouter.post("/users", async (req, res, next) => {
   try {
-    const { username, email, password, role, allowedDepartments } = (req.body ?? {}) as {
+    const { username, email, password, role, allowedDepartments, allowedQueues } = (req.body ?? {}) as {
       username?: unknown;
       email?: unknown;
       password?: unknown;
       role?: unknown;
       allowedDepartments?: unknown;
+      allowedQueues?: unknown;
     };
 
     if (typeof username !== "string" || username.trim().length === 0) {
@@ -206,12 +252,20 @@ adminRouter.post("/users", async (req, res, next) => {
       return;
     }
 
+    const resolvedQueues = await resolveAllowedQueues(allowedQueues);
+    if (!resolvedQueues.ok) {
+      res.status(400).json({ error: resolvedQueues.error });
+      return;
+    }
+
     const result = await usersRepository.create({
       username: username.trim(),
       email: email.trim(),
       password,
       role: role as Role,
       allowedDepartments: resolvedDepartments.departments,
+      // null en la creación equivale a "sin acceso" (campo ausente).
+      ...(resolvedQueues.queues ? { allowedQueues: resolvedQueues.queues } : {}),
     });
     if (!result.ok) {
       const message =
@@ -223,7 +277,7 @@ adminRouter.post("/users", async (req, res, next) => {
     }
     res.status(201).json(result.user);
   } catch (error) {
-    next(error);
+    respondZnunyError(error, res, next);
   }
 });
 
@@ -256,13 +310,19 @@ adminRouter.patch("/users/:username/role", (req, res) => {
 
 adminRouter.patch("/users/:username/profile", async (req, res, next) => {
   try {
-    const { username: newUsername, email, allowedDepartments } = (req.body ?? {}) as {
+    const { username: newUsername, email, allowedDepartments, allowedQueues } = (req.body ?? {}) as {
       username?: unknown;
       email?: unknown;
       allowedDepartments?: unknown;
+      allowedQueues?: unknown;
     };
 
-    const updates: { username?: string; email?: string; allowedDepartments?: string[] } = {};
+    const updates: {
+      username?: string;
+      email?: string;
+      allowedDepartments?: string[];
+      allowedQueues?: string[] | null;
+    } = {};
     if (newUsername !== undefined) {
       if (typeof newUsername !== "string" || newUsername.trim().length === 0) {
         res.status(400).json({ error: "username no puede quedar vacío." });
@@ -286,6 +346,12 @@ adminRouter.patch("/users/:username/profile", async (req, res, next) => {
       }
       updates.allowedDepartments = resolvedDepartments.departments;
     }
+    const resolvedQueues = await resolveAllowedQueues(allowedQueues);
+    if (!resolvedQueues.ok) {
+      res.status(400).json({ error: resolvedQueues.error });
+      return;
+    }
+    if (resolvedQueues.queues !== undefined) updates.allowedQueues = resolvedQueues.queues;
 
     const currentUsername = decodeURIComponent(req.params.username);
     const result = usersRepository.updateProfile(currentUsername, updates);
@@ -303,7 +369,7 @@ adminRouter.patch("/users/:username/profile", async (req, res, next) => {
     }
     res.json(result.user);
   } catch (error) {
-    next(error);
+    respondZnunyError(error, res, next);
   }
 });
 
