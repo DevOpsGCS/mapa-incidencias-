@@ -12,3 +12,11 @@ src/data/site-metadata.json
 # criterio que site-metadata.json: nunca trackear, ver
 # src/data/users.seed.json y src/repositories/usersRepository.ts.
 src/data/users.json
+
+# Backups de la base real de osTicket (contienen datos de producción)
+backups/
+
+# Snapshot congelado del histórico de osTicket (datos de producción) y sus
+# respaldos automáticos (.bak-YYYYMMDD)
+src/data/osticket-snapshot.json*
+src/data/*.bak-*

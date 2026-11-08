@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { readOnlyQuery } from "../db";
+import { readOnlyQuery } from "../legacy/osticket/db";
 import { requireRole } from "../auth";
 import { normalizeName } from "../lib/normalizeName";
 import { sitesRepository } from "../repositories/sitesRepository";

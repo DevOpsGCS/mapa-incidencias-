@@ -1,4 +1,4 @@
-export type TicketStatus = "open" | "resolved" | "closed";
+export type LegacyTicketStatus = "open" | "resolved" | "closed";
 
 export type Role = "admin" | "normal";
 
@@ -12,7 +12,7 @@ export interface PublicUser {
   allowedQueues: string[] | null;
 }
 
-export type TicketPriority = "low" | "normal" | "high" | "urgente";
+export type LegacyTicketPriority = "low" | "normal" | "high" | "urgente";
 
 export type SiteType =
   | "aduana_terrestre"
@@ -20,11 +20,11 @@ export type SiteType =
   | "aduana_aerea"
   | "sede";
 
-export interface Ticket {
+export interface LegacyTicket {
   id: string;
   subject: string;
-  status: TicketStatus;
-  priority: TicketPriority;
+  status: LegacyTicketStatus;
+  priority: LegacyTicketPriority;
   department: string;
   helpTopic: string;
   /** Equipo asignado (ost_team) — cruza departamentos, no es un hijo de department. "Sin equipo" si no tiene. */
@@ -66,8 +66,8 @@ export interface TrendPoint {
 
 export interface TicketStats {
   total: number;
-  byStatus: Record<TicketStatus, number>;
-  byPriority: Record<TicketPriority, number>;
+  byStatus: Record<LegacyTicketStatus, number>;
+  byPriority: Record<LegacyTicketPriority, number>;
   bySite: SiteStat[];
   totalOpen: number;
   totalUrgente: number;
@@ -77,6 +77,6 @@ export interface TicketStats {
 
 export interface TicketFilters {
   siteId?: string;
-  status?: TicketStatus;
-  priority?: TicketPriority;
+  status?: LegacyTicketStatus;
+  priority?: LegacyTicketPriority;
 }

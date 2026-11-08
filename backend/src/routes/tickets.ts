@@ -1,15 +1,15 @@
 import { Router } from "express";
 import { requireAuth } from "../auth";
-import { ticketsRepository } from "../repositories/ticketsRepository";
+import { ticketsRepository } from "../legacy/osticket/ticketsRepository";
 import { usersRepository } from "../repositories/usersRepository";
-import { TicketFilters, TicketPriority, TicketStatus } from "../types";
+import { TicketFilters, LegacyTicketPriority, LegacyTicketStatus } from "../types";
 
 export const ticketsRouter = Router();
 
 ticketsRouter.use(requireAuth);
 
-const VALID_STATUSES: TicketStatus[] = ["open", "resolved", "closed"];
-const VALID_PRIORITIES: TicketPriority[] = ["low", "normal", "high", "urgente"];
+const VALID_STATUSES: LegacyTicketStatus[] = ["open", "resolved", "closed"];
+const VALID_PRIORITIES: LegacyTicketPriority[] = ["low", "normal", "high", "urgente"];
 
 // IMPORTANTE: /stats debe declararse antes de cualquier ruta con parámetro
 // dinámico para que Express no intente resolver "stats" como un :id.
@@ -35,15 +35,15 @@ ticketsRouter.get("/", async (req, res, next) => {
       filters.siteId = siteId;
     }
 
-    if (typeof status === "string" && VALID_STATUSES.includes(status as TicketStatus)) {
-      filters.status = status as TicketStatus;
+    if (typeof status === "string" && VALID_STATUSES.includes(status as LegacyTicketStatus)) {
+      filters.status = status as LegacyTicketStatus;
     }
 
     if (
       typeof priority === "string" &&
-      VALID_PRIORITIES.includes(priority as TicketPriority)
+      VALID_PRIORITIES.includes(priority as LegacyTicketPriority)
     ) {
-      filters.priority = priority as TicketPriority;
+      filters.priority = priority as LegacyTicketPriority;
     }
 
     const allowedDepartments = usersRepository.getAllowedDepartments(req.user!.username);

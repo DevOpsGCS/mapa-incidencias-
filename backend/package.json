@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:it": "cross-env ZNUNY_IT=1 vitest run test/integration",
-    "hash-password": "tsx src/scripts/hashPassword.ts"
+    "hash-password": "tsx src/scripts/hashPassword.ts",
+    "osticket:snapshot": "tsx src/scripts/osticketSnapshot.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

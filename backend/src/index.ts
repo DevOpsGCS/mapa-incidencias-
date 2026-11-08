@@ -10,8 +10,6 @@ import { authRouter } from "./routes/auth";
 import { sitesRouter } from "./routes/sites";
 import { ticketsRouter } from "./routes/tickets";
 import { usersRepository } from "./repositories/usersRepository";
-import { startLiveSimulator } from "./sockets/liveSimulator";
-import { startTicketEventsPoller } from "./sockets/ticketEventsPoller";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(",");
@@ -72,8 +70,7 @@ io.use((socket, next) => {
 
 // Room "all-departments": todo cliente sin restricción configurada (el
 // caso de hoy para todo el mundo). Rooms "department:<nombre>": clientes
-// con allowedDepartments — ver liveSimulator.ts/ticketEventsPoller.ts, que
-// emiten a la unión de ambas en vez de hacer broadcast global.
+// con allowedDepartments (histórico osTicket).
 io.on("connection", (socket) => {
   const { username } = socket.data.session as { username: string };
   const allowedDepartments = usersRepository.getAllowedDepartments(username);
@@ -90,9 +87,6 @@ io.on("connection", (socket) => {
     console.log(`[socket] cliente desconectado: ${socket.id}`);
   });
 });
-
-startLiveSimulator(io);
-startTicketEventsPoller(io);
 
 httpServer.listen(PORT, () => {
   console.log(`API + socket.io escuchando en http://localhost:${PORT}`);

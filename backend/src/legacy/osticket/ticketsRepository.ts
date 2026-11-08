@@ -1,15 +1,15 @@
-import { readOnlyQuery } from "../db";
+import { readOnlyQuery } from "./db";
 import {
-  Ticket,
+  LegacyTicket,
   TicketFilters,
-  TicketPriority,
+  LegacyTicketPriority,
   TicketStats,
-  TicketStatus,
-} from "../types";
-import { sitesRepository } from "./sitesRepository";
+  LegacyTicketStatus,
+} from "../../types";
+import { sitesRepository } from "../../repositories/sitesRepository";
 
-const PRIORITIES: TicketPriority[] = ["low", "normal", "high", "urgente"];
-const STATUSES: TicketStatus[] = ["open", "resolved", "closed"];
+const PRIORITIES: LegacyTicketPriority[] = ["low", "normal", "high", "urgente"];
+const STATUSES: LegacyTicketStatus[] = ["open", "resolved", "closed"];
 const TREND_DAYS = 30;
 
 // Sin barra final, para no terminar con "//scp" al armar la URL. Si no está
@@ -17,10 +17,10 @@ const TREND_DAYS = 30;
 const OSTICKET_BASE_URL = process.env.OSTICKET_BASE_URL?.replace(/\/+$/, "");
 
 // Único lugar que sabe cuál es, dentro de nuestro vocabulario ya traducido
-// (TicketPriority), el valor que cuenta como "urgente" para totalUrgente y
+// (LegacyTicketPriority), el valor que cuenta como "urgente" para totalUrgente y
 // urgenteOpen — así ambos cálculos quedan atados a la misma fuente en vez
 // de repetir el literal "urgente" en cada comparación.
-const URGENTE_PRIORITY: TicketPriority = "urgente";
+const URGENTE_PRIORITY: LegacyTicketPriority = "urgente";
 
 // osTicket guarda la PALABRA de cada prioridad/estado en ost_ticket_priority
 // / ost_ticket_status — nunca asumimos qué ID corresponde a cuál (eso fue
@@ -29,24 +29,24 @@ const URGENTE_PRIORITY: TicketPriority = "urgente";
 // es la traducción de la palabra real de osTicket a nuestro propio
 // vocabulario de UI — una decisión de nombres nuestra, no un dato que
 // osTicket "posea".
-const PRIORITY_WORD_TO_APP: Record<string, TicketPriority> = {
+const PRIORITY_WORD_TO_APP: Record<string, LegacyTicketPriority> = {
   low: "low",
   normal: "normal",
   high: "high",
   emergency: "urgente", // osTicket guarda esta prioridad como "emergency", pero en la base real se muestra como "Urgente" — usamos esa misma palabra tal cual, sin reinterpretarla.
 };
 
-const STATUS_NAME_TO_APP: Record<string, TicketStatus> = {
+const STATUS_NAME_TO_APP: Record<string, LegacyTicketStatus> = {
   Abierto: "open",
   Resuelto: "resolved",
   Cerrado: "closed",
 };
 
-async function loadPriorityAppById(): Promise<Map<number, TicketPriority>> {
+async function loadPriorityAppById(): Promise<Map<number, LegacyTicketPriority>> {
   const rows = await readOnlyQuery<{ priority_id: number; priority: string }>(
     "SELECT priority_id, priority FROM ost_ticket_priority"
   );
-  const map = new Map<number, TicketPriority>();
+  const map = new Map<number, LegacyTicketPriority>();
   for (const row of rows) {
     map.set(row.priority_id, PRIORITY_WORD_TO_APP[row.priority] ?? "normal");
   }
@@ -59,11 +59,11 @@ async function loadPriorityAppById(): Promise<Map<number, TicketPriority>> {
  * listados, igual que antes, pero ahora la exclusión sale del campo `state`
  * real de ost_ticket_status en vez de una lista de IDs fija.
  */
-async function loadStatusAppById(): Promise<Map<number, TicketStatus | null>> {
+export async function loadStatusAppById(): Promise<Map<number, LegacyTicketStatus | null>> {
   const rows = await readOnlyQuery<{ id: number; name: string; state: string }>(
     "SELECT id, name, state FROM ost_ticket_status"
   );
-  const map = new Map<number, TicketStatus | null>();
+  const map = new Map<number, LegacyTicketStatus | null>();
   for (const row of rows) {
     if (row.state === "archived" || row.state === "deleted") {
       map.set(row.id, null);
@@ -194,8 +194,8 @@ function extractAduanaId(raw: string | null): number | null {
 interface MapRowContext {
   listItemNamesById: Map<number, string>;
   cctvSiteNameByTicketId: Map<number, string>;
-  statusAppById: Map<number, TicketStatus | null>;
-  priorityAppById: Map<number, TicketPriority>;
+  statusAppById: Map<number, LegacyTicketStatus | null>;
+  priorityAppById: Map<number, LegacyTicketPriority>;
   helpTopicNameById: Map<number, string>;
 }
 
@@ -234,7 +234,7 @@ export function toDisplayTicketId(number: string | null, ticketId: number): stri
 }
 
 /** Devuelve null si el ticket debe quedar fuera del dashboard (ver loadStatusAppById). */
-function mapRow(row: TicketRow, ctx: MapRowContext): Ticket | null {
+function mapRow(row: TicketRow, ctx: MapRowContext): LegacyTicket | null {
   const status = ctx.statusAppById.get(row.statusId) ?? null;
   if (!status) return null;
 
@@ -320,7 +320,7 @@ async function loadMapRowContext(): Promise<MapRowContext> {
  * (ver usersRepository.getAllowedDepartments), separado de TicketFilters
  * (los filtros que sí controla el cliente vía query string).
  */
-async function fetchAllTickets(allowedDepartments?: string[] | null): Promise<Ticket[]> {
+export async function fetchAllTickets(allowedDepartments?: string[] | null): Promise<LegacyTicket[]> {
   let sql = `${TICKETS_SELECT} `;
   const params: unknown[] = [];
   if (allowedDepartments && allowedDepartments.length > 0) {
@@ -334,7 +334,7 @@ async function fetchAllTickets(allowedDepartments?: string[] | null): Promise<Ti
     loadMapRowContext(),
   ]);
 
-  const tickets: Ticket[] = [];
+  const tickets: LegacyTicket[] = [];
   for (const row of rows) {
     const ticket = mapRow(row, ctx);
     if (ticket) tickets.push(ticket);
@@ -342,14 +342,14 @@ async function fetchAllTickets(allowedDepartments?: string[] | null): Promise<Ti
   return tickets;
 }
 
-function matchesFilters(ticket: Ticket, filters: TicketFilters): boolean {
+function matchesFilters(ticket: LegacyTicket, filters: TicketFilters): boolean {
   if (filters.siteId && ticket.siteId !== filters.siteId) return false;
   if (filters.status && ticket.status !== filters.status) return false;
   if (filters.priority && ticket.priority !== filters.priority) return false;
   return true;
 }
 
-function isOpenStatus(status: TicketStatus): boolean {
+function isOpenStatus(status: LegacyTicketStatus): boolean {
   return status === "open";
 }
 
@@ -373,12 +373,12 @@ function dateKey(isoDate: string): string {
  * consume el frontend — rutas de Express y frontend no cambiaron.
  */
 export interface TicketsRepository {
-  findAll(filters?: TicketFilters, allowedDepartments?: string[] | null): Promise<Ticket[]>;
+  findAll(filters?: TicketFilters, allowedDepartments?: string[] | null): Promise<LegacyTicket[]>;
   getStats(allowedDepartments?: string[] | null): Promise<TicketStats>;
 }
 
 class MySqlTicketsRepository implements TicketsRepository {
-  async findAll(filters: TicketFilters = {}, allowedDepartments: string[] | null = null): Promise<Ticket[]> {
+  async findAll(filters: TicketFilters = {}, allowedDepartments: string[] | null = null): Promise<LegacyTicket[]> {
     const tickets = await fetchAllTickets(allowedDepartments);
     return tickets.filter((ticket) => matchesFilters(ticket, filters));
   }
@@ -392,12 +392,12 @@ class MySqlTicketsRepository implements TicketsRepository {
     const byStatus = STATUSES.reduce((acc, status) => {
       acc[status] = 0;
       return acc;
-    }, {} as Record<TicketStatus, number>);
+    }, {} as Record<LegacyTicketStatus, number>);
 
     const byPriority = PRIORITIES.reduce((acc, priority) => {
       acc[priority] = 0;
       return acc;
-    }, {} as Record<TicketPriority, number>);
+    }, {} as Record<LegacyTicketPriority, number>);
 
     const bySiteMap = new Map<
       string,
@@ -475,9 +475,29 @@ class MySqlTicketsRepository implements TicketsRepository {
 export const ticketsRepository: TicketsRepository = new MySqlTicketsRepository();
 
 // Reutilizados por el poller de socket.io (sockets/liveSimulator.ts) para no
-// duplicar la lógica de mapeo DB -> Ticket. STATUS_NAME_TO_APP también la usa
+// duplicar la lógica de mapeo DB -> LegacyTicket. STATUS_NAME_TO_APP también la usa
 // sockets/ticketEventsPoller.ts, para traducir por PALABRA (nunca por ID) el
 // estado que loguea ost_thread_event — misma regla de oro que en el resto
 // del archivo, una sola fuente de verdad para esa traducción.
 export { TICKETS_SELECT, mapRow as mapTicketRow, loadMapRowContext, mysqlDatetimeToIso, STATUS_NAME_TO_APP };
 export type { TicketRow, MapRowContext };
+
+/**
+ * Cuántos tickets debería exportar el snapshot: mismo criterio de estados que
+ * loadStatusAppById (excluye archivados, borrados y estados no reconocidos).
+ * Se calcula con un COUNT independiente del mapeo fila a fila, para que el
+ * script de snapshot pueda detectar si se perdió algún ticket al exportar.
+ */
+export async function countExportableTickets(): Promise<number> {
+  const [statusAppById, rows] = await Promise.all([
+    loadStatusAppById(),
+    readOnlyQuery<{ statusId: number; n: number }>(
+      "SELECT status_id AS statusId, COUNT(*) AS n FROM ost_ticket GROUP BY status_id"
+    ),
+  ]);
+  let total = 0;
+  for (const row of rows) {
+    if (statusAppById.get(row.statusId)) total += Number(row.n);
+  }
+  return total;
+}
