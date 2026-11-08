@@ -156,6 +156,23 @@ describe("repositorios con DATA_DIR temporal", () => {
     expect(saved.schemaVersion).toBe(2);
   });
 
+  it("sitios: upsert legacy de un sitio migrado conserva znunyKey y legacyOnly", async () => {
+    writeSites({
+      sites: [
+        { name: "El Poy", type: "aduana_terrestre", lat: 1, lng: 2 },
+        { name: "Fardos Postales", type: "sede", lat: 3, lng: 4 },
+      ],
+    });
+    const { sitesRepository } = await import("../src/repositories/sitesRepository");
+    sitesRepository.upsert({ name: "el poy", type: "sede", lat: 9, lng: 8 });
+    sitesRepository.upsert({ name: "Fardos Postales", type: "sede", lat: 7, lng: 6 });
+    const saved = JSON.parse(fs.readFileSync(path.join(dir, "site-metadata.json"), "utf-8"));
+    expect(saved.schemaVersion).toBe(2);
+    expect(saved.sites[0]).toMatchObject({ name: "El Poy", znunyKey: "Poy", type: "sede", lat: 9, lng: 8 });
+    expect(saved.sites[1]).toMatchObject({ name: "Fardos Postales", legacyOnly: true, lat: 7, lng: 6 });
+    expect(sitesRepository.findAll().map((x) => x.name)).toEqual(["El Poy"]);
+  });
+
   it("sitios: no crea .bak si no hay cambios", async () => {
     writeSites({ schemaVersion: 2, sites: [] });
     await import("../src/repositories/sitesRepository");

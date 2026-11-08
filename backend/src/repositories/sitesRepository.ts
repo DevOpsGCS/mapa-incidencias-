@@ -134,7 +134,8 @@ class JsonSitesRepository implements SitesRepository {
     const target = normalizeName(site.name);
     const index = this.sites.findIndex((s) => normalizeName(s.name) === target);
     if (index >= 0) {
-      this.sites[index] = { ...site, name: this.sites[index].name };
+      // Merge: conserva znunyKey/legacyOnly (la ruta admin legacy solo manda name/type/lat/lng).
+      this.sites[index] = { ...this.sites[index], type: site.type, lat: site.lat, lng: site.lng };
     } else {
       this.sites.push(site);
     }
