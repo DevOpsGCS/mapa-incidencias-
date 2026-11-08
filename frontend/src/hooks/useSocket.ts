@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { API_BASE_URL } from "../api/client";
-import { Ticket, TicketStatus } from "../types";
+import { Ticket } from "../types";
 
 interface HeartbeatPayload {
   at: string;
@@ -9,15 +9,20 @@ interface HeartbeatPayload {
 }
 
 export interface StatusChangedPayload {
-  ticketId: string;
-  status: TicketStatus;
+  id: number;
+  from: string | null;
+  to: string;
+  /** Ticket completo ya actualizado: el cliente lo upsertea tal cual. */
+  ticket: Ticket;
 }
 
 interface UseSocketOptions {
   onTicketNew: (ticket: Ticket) => void;
   onTicketUpdated: (ticket: Ticket) => void;
+  /** Ticket que dejó de ser visible (borrado, movido a una cola sin acceso, merged...). */
+  onTicketRemoved: (payload: { id: number }) => void;
   onHeartbeat: (payload: HeartbeatPayload) => void;
-  /** Ticket que cambió de estado (abierto/resuelto/cerrado) — viene del log de eventos real de osTicket, no del poll normal de tickets (ver ticketEventsPoller.ts en el backend). */
+  /** Ticket que cambió de estado — viene del poller de estados de Znuny (znunyStatePoller.ts en el backend). */
   onStatusChanged: (payload: StatusChangedPayload) => void;
   /**
    * Se llama al conectar por primera vez Y en cada reconexión (automática o
@@ -41,13 +46,14 @@ const WATCHDOG_TIMEOUT_MS = 45000; // > 2x el intervalo real del heartbeat del b
 export function useSocket({
   onTicketNew,
   onTicketUpdated,
+  onTicketRemoved,
   onHeartbeat,
   onStatusChanged,
   onSync,
 }: UseSocketOptions) {
   const [connected, setConnected] = useState(false);
-  const handlersRef = useRef({ onTicketNew, onTicketUpdated, onHeartbeat, onStatusChanged, onSync });
-  handlersRef.current = { onTicketNew, onTicketUpdated, onHeartbeat, onStatusChanged, onSync };
+  const handlersRef = useRef({ onTicketNew, onTicketUpdated, onTicketRemoved, onHeartbeat, onStatusChanged, onSync });
+  handlersRef.current = { onTicketNew, onTicketUpdated, onTicketRemoved, onHeartbeat, onStatusChanged, onSync };
 
   useEffect(() => {
     const socket: Socket = io(API_BASE_URL, {
@@ -84,6 +90,10 @@ export function useSocket({
     socket.on("ticket:updated", (ticket: Ticket) => {
       armWatchdog();
       handlersRef.current.onTicketUpdated(ticket);
+    });
+    socket.on("ticket:removed", (payload: { id: number }) => {
+      armWatchdog();
+      handlersRef.current.onTicketRemoved(payload);
     });
     socket.on("sync:heartbeat", (payload: HeartbeatPayload) => {
       armWatchdog();

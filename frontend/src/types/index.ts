@@ -1,5 +1,3 @@
-export type TicketStatus = "open" | "resolved" | "closed";
-
 export type Role = "admin" | "normal";
 
 export interface CurrentUser {
@@ -16,34 +14,11 @@ export interface AdminUserSummary {
   allowedDepartments: string[];
 }
 
-export type TicketPriority = "low" | "normal" | "high" | "urgente";
-
 export type SiteType =
   | "aduana_terrestre"
   | "aduana_maritima"
   | "aduana_aerea"
   | "sede";
-
-export interface Ticket {
-  id: string;
-  subject: string;
-  status: TicketStatus;
-  priority: TicketPriority;
-  department: string;
-  helpTopic: string;
-  /** Equipo asignado (ost_team) — cruza departamentos, no es un hijo de department. "Sin equipo" si no tiene. */
-  team: string;
-  /** Agente asignado (ost_staff), nombre completo. "Sin asignar" si el ticket todavía no tiene uno (staff_id=0). */
-  agent: string;
-  siteId: string;
-  createdAt: string;
-  updatedAt: string;
-  /** Vencimiento efectivo de SLA (duedate si está seteado a mano, si no est_duedate calculado por osTicket según el SLA asignado). null si el ticket no tiene ninguno de los dos. */
-  slaDueAt: string | null;
-  requester: string;
-  /** Link al detalle del ticket en el panel real de osTicket. Ausente si OSTICKET_BASE_URL no está configurada. */
-  osTicketUrl?: string;
-}
 
 export interface Site {
   id: string;
@@ -51,34 +26,45 @@ export interface Site {
   type: SiteType;
   lat: number;
   lng: number;
+  /** Clave de Ubicacion en Znuny; null si el sitio solo existe en el histórico osTicket. */
+  znunyKey: string | null;
 }
 
-export interface SiteStat {
+export type StateType = "new" | "open" | "pending" | "closed";
+
+export interface Catalog {
+  queues: { id: number; name: string; parent: string | null; valid: boolean }[];
+  states: { id: number; name: string; type: StateType }[];
+  priorities: { id: number; name: string; rank: number }[];
+  types: string[];
+  services: string[];
+  topPriorityId: number;
+}
+
+/** Ticket de Znuny (espejo de ZnunyTicket del backend). */
+export interface Ticket {
+  id: number;
+  tn: string;
+  title: string;
+  queue: string;
+  state: string;
+  stateType: StateType;
+  priorityId: number;
+  priority: string;
+  type: string | null;
+  service: string | null;
+  sla: string | null;
+  owner: string;
+  responsible: string | null;
+  customer: string;
+  /** "" si la clave de Ubicacion no tiene sitio mapeado. */
   siteId: string;
-  siteName: string;
-  total: number;
-  open: number;
-  urgenteOpen: number;
+  siteKey: string | null;
+  siteName: string | null;
+  createdAt: string;
+  changedAt: string;
+  slaDueAt: string | null;
+  znunyUrl: string;
 }
 
-export interface TrendPoint {
-  date: string;
-  count: number;
-}
-
-export interface TicketStats {
-  total: number;
-  byStatus: Record<TicketStatus, number>;
-  byPriority: Record<TicketPriority, number>;
-  bySite: SiteStat[];
-  totalOpen: number;
-  totalUrgente: number;
-  resolvedToday: number;
-  trend: TrendPoint[];
-}
-
-export interface TicketFilters {
-  siteId?: string;
-  status?: TicketStatus;
-  priority?: TicketPriority;
-}
+export type QueueAccess = "all" | "some" | "none";

@@ -1,4 +1,4 @@
-import { Site, Ticket, TicketFilters, TicketStats } from "../types";
+import { Catalog, QueueAccess, Site, Ticket } from "../types";
 import { LegacyMeta, LegacyTicket } from "../legacy/types";
 
 // En dev, mismo origen: el proxy de vite.config.ts reenvía /api y /socket.io al backend.
@@ -33,17 +33,17 @@ export function fetchSites(): Promise<Site[]> {
   return credentialedRequest<Site[]>("/api/sites");
 }
 
-export function fetchTickets(filters: TicketFilters = {}): Promise<Ticket[]> {
-  const params = new URLSearchParams();
-  if (filters.siteId) params.set("siteId", filters.siteId);
-  if (filters.status) params.set("status", filters.status);
-  if (filters.priority) params.set("priority", filters.priority);
-  const query = params.toString();
-  return credentialedRequest<Ticket[]>(`/api/tickets${query ? `?${query}` : ""}`);
+export function fetchTickets(): Promise<Ticket[]> {
+  return credentialedRequest<Ticket[]>("/api/tickets");
 }
 
-export function fetchTicketStats(): Promise<TicketStats> {
-  return credentialedRequest<TicketStats>("/api/tickets/stats");
+export function fetchCatalog(): Promise<Catalog> {
+  return credentialedRequest<Catalog>("/api/catalog");
+}
+
+export async function fetchQueueAccess(): Promise<QueueAccess> {
+  const body = await credentialedRequest<{ queueAccess: QueueAccess }>("/api/me/access");
+  return body.queueAccess;
 }
 
 export function fetchLegacyTickets(): Promise<LegacyTicket[]> {
