@@ -10,6 +10,8 @@ import { authRouter } from "./routes/auth";
 import { sitesRouter } from "./routes/sites";
 import { ticketsRouter } from "./routes/tickets";
 import { usersRepository } from "./repositories/usersRepository";
+import { startZnunyStatePoller } from "./sockets/znunyStatePoller";
+import { startZnunyTicketPoller } from "./sockets/znunyTicketPoller";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(",");
@@ -90,4 +92,6 @@ io.on("connection", (socket) => {
 
 httpServer.listen(PORT, () => {
   console.log(`API + socket.io escuchando en http://localhost:${PORT}`);
+  startZnunyTicketPoller(io);
+  startZnunyStatePoller(io);
 });
