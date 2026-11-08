@@ -50,3 +50,15 @@ export async function getLegacyMeta(
   const snap = readSnapshot(snapshotPath);
   return { source: "snapshot", frozenAt: snap.frozenAt, total: snap.total };
 }
+
+/**
+ * Departamentos del histórico congelado: los valores distintos de
+ * `department` en el snapshot (ordenados). Con osTicket apagado es la única
+ * fuente para restringir usuarios por departamento.
+ */
+export function getSnapshotDepartments(snapshotPath: string = defaultSnapshotPath()): string[] {
+  const { tickets } = readSnapshot(snapshotPath);
+  const names = new Set<string>();
+  for (const t of tickets) if (t.department) names.add(t.department);
+  return [...names].sort((a, b) => a.localeCompare(b, "es"));
+}

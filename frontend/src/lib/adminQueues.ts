@@ -74,3 +74,18 @@ export function splitSelectedQueues(
 export function mergeKnownSelection(unknown: string[], nextKnown: string[]): string[] {
   return [...unknown, ...nextKnown];
 }
+
+/**
+ * ¿Cambió allowedQueues respecto de lo guardado? (null = sin acceso,
+ * [] = todas, lista = específicas; el orden de la lista no importa). La
+ * edición omite allowedQueues si no cambió: el backend valida las colas
+ * contra Znuny y, con Znuny caído, no se podría editar ni el email de un
+ * usuario con colas específicas.
+ */
+export function queuesChanged(original: string[] | null, next: string[] | null): boolean {
+  if (original === null || next === null) return original !== next;
+  if (original.length !== next.length) return true;
+  const a = [...original].sort();
+  const b = [...next].sort();
+  return a.some((q, i) => q !== b[i]);
+}

@@ -3,7 +3,12 @@ import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readSnapshot, writeSnapshot } from "../src/legacy/osticket/snapshot";
-import { fetchLegacyTickets, getLegacyMeta, getLegacySourceKind } from "../src/legacy/osticket/source";
+import {
+  fetchLegacyTickets,
+  getLegacyMeta,
+  getLegacySourceKind,
+  getSnapshotDepartments,
+} from "../src/legacy/osticket/source";
 import type { LegacyTicket } from "../src/types";
 
 function ticket(id: string, department: string): LegacyTicket {
@@ -95,6 +100,10 @@ describe("fetchLegacyTickets (modo snapshot)", () => {
   it("null o [] devuelve todo", async () => {
     expect(await fetchLegacyTickets(null, file)).toHaveLength(3);
     expect(await fetchLegacyTickets([], file)).toHaveLength(3);
+  });
+
+  it("getSnapshotDepartments devuelve los departamentos distintos, ordenados", () => {
+    expect(getSnapshotDepartments(file)).toEqual(["CCTV", "Redes"]);
   });
 
   it("getLegacyMeta informa el snapshot", async () => {

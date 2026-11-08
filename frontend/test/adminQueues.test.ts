@@ -5,6 +5,7 @@ import {
   NO_SPECIFIC_QUEUES_ERROR,
   mergeKnownSelection,
   queueCellFor,
+  queuesChanged,
   splitSelectedQueues,
   unknownQueuesNotices,
 } from "../src/lib/adminQueues";
@@ -78,5 +79,20 @@ describe("splitSelectedQueues", () => {
   });
   it("mergeKnownSelection conserva las inexistentes no quitadas", () => {
     expect(mergeKnownSelection(["Renombrada"], ["CCTV"])).toEqual(["Renombrada", "CCTV"]);
+  });
+});
+
+describe("queuesChanged", () => {
+  it("misma selección (en otro orden) no cuenta como cambio", () => {
+    expect(queuesChanged(["CCTV", "Redes"], ["Redes", "CCTV"])).toBe(false);
+    expect(queuesChanged([], [])).toBe(false);
+    expect(queuesChanged(null, null)).toBe(false);
+  });
+  it("cambio de modo o de colas sí", () => {
+    expect(queuesChanged(null, [])).toBe(true);
+    expect(queuesChanged([], null)).toBe(true);
+    expect(queuesChanged(["CCTV"], [])).toBe(true);
+    expect(queuesChanged(["CCTV"], ["Redes"])).toBe(true);
+    expect(queuesChanged(["CCTV"], ["CCTV", "Redes"])).toBe(true);
   });
 });

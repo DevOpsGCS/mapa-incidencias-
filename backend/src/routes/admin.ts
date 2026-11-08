@@ -1,5 +1,6 @@
 import { NextFunction, Response, Router } from "express";
 import { readOnlyQuery } from "../legacy/osticket/db";
+import { getLegacySourceKind, getSnapshotDepartments } from "../legacy/osticket/source";
 import { requireRole } from "../auth";
 import { normalizeName } from "../lib/normalizeName";
 import { respondLegacyDbError } from "../lib/legacyErrors";
@@ -20,8 +21,15 @@ adminRouter.use(requireRole("admin"));
 const VALID_SITE_TYPES: SiteType[] = ["aduana_terrestre", "aduana_maritima", "aduana_aerea", "sede"];
 const VALID_ROLES: Role[] = ["admin", "normal"];
 
-/** Departamentos reales de osTicket — misma regla de oro que sitios: nunca hardcodear, siempre en vivo contra ost_department. */
+/**
+ * Departamentos reales de osTicket — misma regla de oro que sitios: nunca
+ * hardcodear. Con osTicket vivo, contra ost_department; con osTicket apagado
+ * (OSTICKET_SOURCE=snapshot), los departamentos que aparecen en el snapshot
+ * congelado (si no, /departments daría 503 para siempre y nadie podría
+ * restringir el histórico de un usuario nuevo).
+ */
 async function loadRealDepartmentNames(): Promise<string[]> {
+  if (getLegacySourceKind() === "snapshot") return getSnapshotDepartments();
   const rows = await readOnlyQuery<{ name: string }>(`SELECT name FROM ost_department ORDER BY name`);
   return rows.map((row) => row.name);
 }
@@ -49,7 +57,7 @@ function resolveAllowedDepartments(raw: unknown, realNames: string[]): ResolveAl
     if (!canonical) {
       return {
         ok: false,
-        error: `"${name}" no existe como departamento real en osTicket (ost_department).`,
+        error: `"${name}" no existe como departamento real en osTicket.`,
       };
     }
     if (!departments.includes(canonical)) departments.push(canonical);
@@ -143,7 +151,7 @@ adminRouter.delete("/sites/:name", (req, res) => {
   res.json({ ok: true });
 });
 
-/** Fuente en vivo para poblar el selector de departamentos del panel (creación/edición de usuarios). */
+/** Fuente (en vivo o snapshot) para poblar el selector de departamentos del panel (creación/edición de usuarios). */
 adminRouter.get("/departments", async (_req, res, next) => {
   try {
     res.json(await loadRealDepartmentNames());

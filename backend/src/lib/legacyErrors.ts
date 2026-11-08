@@ -10,9 +10,15 @@ const LEGACY_UNAVAILABLE_CODES = new Set([
   "LEGACY_DB_NOT_CONFIGURED",
 ]);
 
-/** osTicket inalcanzable o sin configurar (DB_* ausente) -> 503 claro en vez de 500. */
+/** osTicket inalcanzable, sin configurar (DB_* ausente) o snapshot ausente -> 503 claro en vez de 500. */
 export function respondLegacyDbError(error: unknown, res: Response, next: NextFunction): void {
   const code = (error as { code?: string } | null)?.code;
+  // Modo snapshot sin el archivo osticket-snapshot.json (nunca se generó o
+  // se borró): las rutas legacy solo leen ese archivo del disco.
+  if (code === "ENOENT") {
+    res.status(503).json({ error: "Histórico de osTicket no disponible" });
+    return;
+  }
   if (code && LEGACY_UNAVAILABLE_CODES.has(code)) {
     res.status(503).json({ error: "osTicket no disponible" });
     return;

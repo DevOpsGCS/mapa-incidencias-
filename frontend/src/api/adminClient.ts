@@ -48,7 +48,7 @@ export function fetchUsers(): Promise<AdminUserSummary[]> {
   return adminRequest<AdminUserSummary[]>("/users");
 }
 
-/** Fuente en vivo (ost_department) para poblar el selector de departamentos del panel — nunca hardcodear la lista. */
+/** Departamentos de osTicket (en vivo de ost_department, o del snapshot si osTicket está apagado) para el selector del panel — nunca hardcodear la lista. */
 export function fetchDepartments(): Promise<string[]> {
   return adminRequest<string[]>("/departments");
 }

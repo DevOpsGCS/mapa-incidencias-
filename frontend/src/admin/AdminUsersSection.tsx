@@ -20,6 +20,7 @@ import {
   modeFromAllowedQueues,
   QueueAccessMode,
   queueCellFor,
+  queuesChanged,
   splitSelectedQueues,
   unknownQueuesNotices,
 } from "../lib/adminQueues";
@@ -48,6 +49,8 @@ interface EditFormState {
   allowedDepartments: string[];
   queueMode: QueueAccessMode;
   queues: string[];
+  /** allowedQueues tal como está guardado; si no cambia no se envía en el PATCH. */
+  originalQueues: string[] | null;
 }
 
 interface PasswordFormState {
@@ -333,6 +336,7 @@ export function AdminUsersSection() {
       allowedDepartments: u.allowedDepartments,
       queueMode: modeFromAllowedQueues(u.allowedQueues),
       queues: u.allowedQueues ?? [],
+      originalQueues: u.allowedQueues,
     });
   };
 
@@ -354,7 +358,11 @@ export function AdminUsersSection() {
         email: editForm.email,
         // Con la lista caída el admin no puede cambiarlos: no se envía y se conservan los actuales.
         ...(departmentsError ? {} : { allowedDepartments: editForm.allowedDepartments }),
-        allowedQueues: queuesPayload.value,
+        // Sin cambios no se envía: el backend validaría las colas contra Znuny
+        // y con Znuny caído no se podría editar ni el email.
+        ...(queuesChanged(editForm.originalQueues, queuesPayload.value)
+          ? { allowedQueues: queuesPayload.value }
+          : {}),
       });
       setEditForm(null);
       await load();
@@ -608,6 +616,12 @@ export function AdminUsersSection() {
             <div className="block text-sm text-[color:var(--text-secondary)]">
               Departamentos (histórico osTicket)
               {departmentsError && <span className="mt-1 block text-xs text-[#FF718A]">{departmentsError}</span>}
+              {departmentsError && (
+                <span role="note" className="mt-1 block text-xs text-[#F7B84F]">
+                  Sin la lista de departamentos el usuario se crea sin restricción: verá todo el
+                  histórico de osTicket. Podés restringirlo editándolo cuando la lista vuelva a cargar.
+                </span>
+              )}
               <DepartmentsCheckboxGroup
                 departments={departments}
                 selected={createForm.allowedDepartments}

@@ -24,6 +24,8 @@ const m = vi.hoisted(() => ({
   findAllTickets: vi.fn(),
   fetchLegacyTickets: vi.fn(),
   getLegacyMeta: vi.fn(),
+  getLegacySourceKind: vi.fn(),
+  getSnapshotDepartments: vi.fn(),
   readOnlyQuery: vi.fn(),
   disconnectUserSockets: vi.fn(),
 }));
@@ -38,6 +40,8 @@ vi.mock("../src/znuny/ticketsRepository", () => ({ findAllTickets: m.findAllTick
 vi.mock("../src/legacy/osticket/source", () => ({
   fetchLegacyTickets: m.fetchLegacyTickets,
   getLegacyMeta: m.getLegacyMeta,
+  getLegacySourceKind: m.getLegacySourceKind,
+  getSnapshotDepartments: m.getSnapshotDepartments,
 }));
 vi.mock("../src/sockets/io", () => ({
   disconnectUserSockets: m.disconnectUserSockets,
@@ -72,6 +76,7 @@ beforeEach(() => {
   m.getCatalog.mockResolvedValue(catalog);
   m.users.getAllowedDepartments.mockReturnValue(null);
   m.users.findByUsername.mockImplementation(findKnownUser);
+  m.getLegacySourceKind.mockReturnValue("live");
 });
 
 describe("tickets y acceso", () => {
@@ -296,5 +301,69 @@ describe("sesión de un usuario que ya no existe o cambió de rol", () => {
     knownUsers.set("degradado2", "normal");
     const res = await request(app).get("/api/auth/me").set("Cookie", c);
     expect(res.body).toEqual({ username: "degradado2", role: "normal" });
+  });
+});
+
+describe("osTicket apagado (OSTICKET_SOURCE=snapshot)", () => {
+  const admin = cookie("root", "admin");
+  const body = { username: "nuevo", email: "n@x.com", password: "12345678", role: "normal" };
+  beforeEach(() => {
+    m.getLegacySourceKind.mockReturnValue("snapshot");
+    m.getSnapshotDepartments.mockReturnValue(["CCTV", "Redes"]);
+    m.readOnlyQuery.mockRejectedValue(Object.assign(new Error("x"), { code: "ECONNREFUSED" }));
+    m.users.create.mockResolvedValue({ ok: true, user: { username: "nuevo" } });
+    m.users.updateProfile.mockReturnValue({ ok: true, user: { username: "ana" } });
+  });
+
+  it("/departments sale del snapshot, sin tocar osTicket", async () => {
+    const res = await request(app).get("/api/admin/departments").set("Cookie", admin);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(["CCTV", "Redes"]);
+    expect(m.readOnlyQuery).not.toHaveBeenCalled();
+  });
+
+  it("POST /users valida allowedDepartments contra el snapshot (nombre canónico)", async () => {
+    const ok = await request(app)
+      .post("/api/admin/users")
+      .set("Cookie", admin)
+      .send({ ...body, allowedDepartments: ["cctv"] });
+    expect(ok.status).toBe(201);
+    expect(m.users.create.mock.calls[0][0].allowedDepartments).toEqual(["CCTV"]);
+
+    const bad = await request(app)
+      .post("/api/admin/users")
+      .set("Cookie", admin)
+      .send({ ...body, allowedDepartments: ["Inventado"] });
+    expect(bad.status).toBe(400);
+  });
+
+  it("PATCH profile valida allowedDepartments contra el snapshot", async () => {
+    const bad = await request(app)
+      .patch("/api/admin/users/ana/profile")
+      .set("Cookie", admin)
+      .send({ allowedDepartments: ["Inventado"] });
+    expect(bad.status).toBe(400);
+    expect(m.users.updateProfile).not.toHaveBeenCalled();
+
+    const ok = await request(app)
+      .patch("/api/admin/users/ana/profile")
+      .set("Cookie", admin)
+      .send({ allowedDepartments: ["Redes"] });
+    expect(ok.status).toBe(200);
+    expect(m.users.updateProfile.mock.calls[0][1]).toMatchObject({ allowedDepartments: ["Redes"] });
+  });
+
+  it("snapshot ausente (ENOENT) -> 503 claro en histórico y departamentos", async () => {
+    const enoent = Object.assign(new Error("no such file"), { code: "ENOENT" });
+    m.fetchLegacyTickets.mockRejectedValue(enoent);
+    m.getSnapshotDepartments.mockImplementation(() => {
+      throw enoent;
+    });
+    const c = cookie("ana", "normal");
+    const legacy = await request(app).get("/api/legacy/osticket/tickets").set("Cookie", c);
+    expect(legacy.status).toBe(503);
+    expect(legacy.body).toEqual({ error: "Histórico de osTicket no disponible" });
+    const deps = await request(app).get("/api/admin/departments").set("Cookie", admin);
+    expect(deps.status).toBe(503);
   });
 });
