@@ -1,43 +1,98 @@
 # Mapa de Incidencias — contexto del proyecto
 
-Dashboard con mapa que muestra en vivo los tickets de un osTicket real (aduanas/sedes). Backend Express+TypeScript, frontend React+Vite+TypeScript, tiempo real vía socket.io.
+Dashboard con mapa que muestra en vivo los tickets de la mesa de servicio **Znuny** de GCS (aduanas/sedes de El Salvador). Backend Express+TypeScript, frontend React+Vite+TypeScript (Leaflet), tiempo real vía socket.io. Producción: `https://mapaincidencias.gcslatam.com`. **Todo el dashboard requiere login** (ya no es público). El histórico del osTicket anterior vive en una vista separada ("Histórico osTicket").
 
 ## Arquitectura
 
-- `backend/src/db.ts` — conexión MySQL de **solo lectura** (`readOnlyQuery`) contra la base real de osTicket.
-- `backend/src/repositories/ticketsRepository.ts` — lee tickets en vivo desde MySQL y los traduce al modelo del frontend. No hay caché ni copia propia de tickets.
-- `backend/src/repositories/sitesRepository.ts` — ver más abajo, "Regla de oro de datos".
-- `backend/src/sockets/liveSimulator.ts` — poller que reutiliza la misma lógica de `ticketsRepository` para emitir updates en vivo por socket.io.
-- `backend/src/auth.ts` + `backend/src/routes/admin.ts` — login admin (JWT en cookie httpOnly) y CRUD de `site-metadata.json`.
-- `frontend/src/admin/` — `AdminLoginForm.tsx` (form puro, sin layout), `AdminLogin.tsx` (página completa que lo envuelve, para acceso directo por `/admin/login`), `AdminLoginModal.tsx` (mismo form en modal) y `AdminSitesPage.tsx`. El botón de acceso (ícono de candado) vive en `TopBar.tsx`, junto a `SoundToggle`/`SyncStatus`: abre el modal si no hay sesión vigente (probando primero `GET /api/admin/sites`; si da 401 recién ahí muestra el login) o navega directo a `/admin/sites` si la cookie sigue válida.
+### Backend (`backend/src/`)
+- `znuny/db.ts` — pool MySQL/MariaDB de **solo lectura** (`ZNUNY_DB_*`, `dateStrings: true`). Toda consulta a Znuny pasa por `znunyReadOnlyQuery`, que rechaza lo que no sea `SELECT`. La base está detrás de un **túnel SSH** (ver "Decisiones no obvias").
+- `znuny/time.ts` — `znunyLocalToIso()`: DATETIME de Znuny (hora `America/El_Salvador`) → ISO UTC.
+- `znuny/catalogRepository.ts` — colas, estados (+tipo), prioridades, tipos, servicios y claves/etiquetas de `Ubicacion`, todo en vivo (`GET /api/catalog`).
+- `znuny/ticketsRepository.ts` — lee tickets de Znuny y los traduce al modelo `Ticket` (el modelo nativo de Znuny: cola, estado, tipo de estado, prioridad, propietario, SLA…). No hay caché ni copia propia. Filtra por cola **en el SQL**: es el scoping de seguridad.
+- `znuny/queueAccess.ts` — funciones puras: expansión de `allowedQueues` (cola padre incluye subcolas `::`), condición SQL con `LIKE` escapado y rooms de socket.
+- `legacy/osticket/` — el código viejo de osTicket movido tal cual: `db.ts` (pool `DB_*`), `ticketsRepository.ts` (modelo `LegacyTicket`), `snapshot.ts` (lee `osticket-snapshot.json`) y `source.ts` (elige `live`/`snapshot` según `OSTICKET_SOURCE`). Sigue filtrando por `allowedDepartments`.
+- `repositories/sitesRepository.ts` — ver "Regla de oro de datos". `repositories/usersRepository.ts` — usuarios/roles en `users.json` (en `DATA_DIR`).
+- `migrations/usersV2.ts` y `sitesV2.ts` — migran `users.json` (agrega `allowedQueues`) y `site-metadata.json` (agrega `znunyKey`); idempotentes y con respaldo `.bak-<fecha>`.
+- `lib/dataDir.ts` — resuelve `DATA_DIR` y copia (nunca mueve ni pisa) los archivos que falten desde `src/data`.
+- `sockets/znunyTicketPoller.ts` — poller (20 s) de tickets nuevos (`MAX(ticket.id)`) y modificados (`change_time` crudo, deduplicado por `id|change_time`) → `ticket:new` / `ticket:updated`; si un ticket cambia de cola emite `ticket:removed` a las rooms de la cola anterior.
+- `sockets/znunyStatePoller.ts` — poller (20 s) de cambios de estado (`ticket_history`, tipo `StateUpdate`, marca `MAX(ticket_history.id)`) → notificación "ticket cambió de estado".
+- `sockets/io.ts` + `index.ts` — al conectar un socket se valida la cookie de sesión y se lo mete en rooms: `all-queues` (`allowedQueues: []`) o `queue:<nombre completo>` por cada cola permitida (sin configurar = ninguna), más `department:<nombre>` / `all-departments` para el histórico y una room personal `user:<username>`. Cada evento sale a `all-queues` y a `queue:<prefijo>` por cada prefijo de la cola del ticket (`A`, `A::B`…). Al cambiar permisos o rol de un usuario, el admin **desconecta sus sockets** (room `user:<u>`) para que reconecten con las rooms nuevas.
+- `auth.ts` — JWT (8 h) en cookie httpOnly `session_token`; `requireAuth` / `requireRole("admin")`. Roles: `admin` | `normal`.
+- `routes/auth.ts` — `/api/auth/login`, `logout`, `me`, `forgot-password` (con rate limit por IP), `reset-password`.
+- `routes/admin.ts` — todo bajo `requireRole("admin")`: CRUD de sitios (`/sites`, `/sites/unmapped`), `/departments`, y usuarios (`/users`, `PATCH .../role`, `.../profile`, `.../password`, colas permitidas, `DELETE`).
+- `routes/tickets.ts`, `routes/sites.ts`, `routes/catalog.ts` — API del dashboard sobre Znuny (respetan `allowedQueues`). Con el túnel caído responden `503 { error: "Mesa de servicio no disponible" }`.
+- `routes/legacy.ts` — `GET /api/legacy/osticket/tickets | /stats | /meta` (respetan `allowedDepartments`).
+- `scripts/osticketSnapshot.ts` — `npm run osticket:snapshot` (en prod: `node dist/scripts/osticketSnapshot.js`). `scripts/hashPassword.ts` — `npm run hash-password -- "contraseña"`.
+- `lib/mailer.ts` — correo de recuperación de contraseña por Gmail (nodemailer).
+- Pruebas: `npm test` (vitest, unitarias) y `npm run test:it` (integración contra Znuny real por el túnel, solo `SELECT`).
+
+### Frontend (`frontend/src/`)
+- `main.tsx` — rutas: `/reset-password` (público, link del correo); todo lo demás envuelto en `AuthGate` (sin sesión → `LoginModal`). `/admin/sites` además en `RequireRole role="admin"`.
+- `auth/` — `AuthContext`, `AuthGate`, `LoginModal`/`LoginForm`, `ForgotPasswordForm`, `ResetPasswordPage`, `RequireRole`.
+- `admin/` — `AdminSitesPage.tsx` (layout con sidebar) con `AdminSitesSection.tsx` (sitios + "Sitios sin configurar") y `AdminUsersSection.tsx` (usuarios, roles, selector de colas en árbol, "Pendiente de asignar colas", "Cola inexistente en Znuny", departamentos del histórico, cambio de contraseña de otros).
+- `components/TopBar.tsx` — vistas Mapa / Métricas / Histórico osTicket, `SoundToggle`, `SyncStatus` y, **solo si el usuario es admin**, botón que lleva a `/admin/sites`.
+- `components/MapView.tsx` — Leaflet con tiles de CARTO (`VITE_CARTO_API_KEY`). `SlaRing`/`SlaBar` + `lib/sla.ts` = indicador de SLA (solo tickets abiertos con vencimiento).
+- `components/MetricsView.tsx` + `TicketsTable.tsx` — métricas y tabla (filtros: cola en árbol → propietario, más estado, prioridad, tipo y servicio). `NoQueueAccessBanner` = aviso del usuario sin colas.
+- `legacy/` — vista "Histórico osTicket" (métricas + tabla sobre `LegacyTicket`, sin mapa ni tiempo real; "Datos congelados al dd/mm/aaaa" si viene del snapshot; "Ver en osTicket" solo con `source = live`).
+- `lib/znunyColors.ts`, `priorityRank.ts`, `svTime.ts`, `queueFilter.ts`, `znunyStats.ts` — colores por tipo de estado y por rank de prioridad, fechas en `America/El_Salvador`, filtro de colas, KPIs.
+- `lib/hudScale.ts` + `lib/mapFraming.ts` — adaptación a navegadores de TV (ver decisiones).
+- `hooks/useSocket.ts` — reconexión con resync completo + watchdog. Pruebas: `npx vitest run` (solo funciones puras de `lib/` y el reducer).
 
 ## Regla de oro de datos (por qué existe `site-metadata.json`)
 
-Lo único que este dashboard "posee" y osTicket no tiene: **lat/lng y tipo de sitio** (aduana marítima/terrestre/aérea/sede). Todo lo demás (qué sitios existen, departamentos, prioridades, estados) se consulta siempre en vivo, nunca se mantiene una lista propia que se pueda desincronizar.
+**Znuny es la fuente de verdad.** Lo único que este dashboard "posee" y Znuny no tiene: **lat/lng y tipo de sitio** (aduana marítima/terrestre/aérea/sede) y **los usuarios del dashboard** (con sus colas permitidas). Todo lo demás (colas, estados, prioridades, tipos, servicios, sitios existentes y sus nombres) se consulta siempre en vivo, nunca se mantiene una lista propia que se pueda desincronizar.
 
-- `backend/src/data/site-metadata.json` — dato real de producción, editado por el panel `/admin/sites`. Está en `.gitignore` (`backend/.gitignore`): un `git pull` **nunca** debe pisarlo.
-- `backend/src/data/site-metadata.seed.json` — sí se trackea; es el punto de partida para una instalación nueva (se copia a `site-metadata.json` la primera vez que el proceso arranca y ese archivo no existe todavía).
-- `POST /api/admin/sites` nunca "inventa" un sitio: valida en vivo contra `ost_list_items` que el nombre ya exista en osTicket antes de guardar coordenadas.
+- `site-metadata.json` guarda `znunyKey → { id, type, lat, lng }`: la clave es la de `Ubicacion` en Znuny (`value_text`). El nombre visible del sitio es la **etiqueta actual** de Znuny (`PossibleValues` en el YAML de `dynamic_field.config`); el campo `name` del JSON es solo referencia. Un sitio sin `znunyKey` (p. ej. "Fardos Postales") es `legacyOnly`: no aparece en el mapa.
+- `users.json`: `allowedQueues` **ausente** = sin acceso a Znuny (el usuario ve el aviso "Tu acceso a colas aún no fue configurado; contactá a un administrador."), `[]` = todas las colas, lista = esas colas **y sus subcolas**. `allowedDepartments` solo aplica al histórico de osTicket.
+- `site-metadata.json`, `users.json` y `osticket-snapshot.json` son datos reales de producción y viven en `DATA_DIR` (ver más abajo). Están en `backend/.gitignore` (los de `src/data`): un `git pull` **nunca** debe pisarlos.
+- `site-metadata.seed.json` / `users.seed.json` — sí se trackean y se leen siempre junto al código (`src/data`, `SEED_DIR`); se copian al archivo real la primera vez que el proceso arranca y ese archivo no existe todavía.
+- `POST /api/admin/sites` nunca "inventa" un sitio: valida en vivo que la clave exista en `Ubicacion` de Znuny antes de guardar coordenadas. `GET /api/admin/sites/unmapped` compara en vivo las claves de `Ubicacion` contra los `znunyKey` configurados.
 
 ## Decisiones no obvias (evitar re-romperlas)
 
-- **Sitios se resuelven por NOMBRE, nunca por ID.** Un mismo sitio puede tener IDs distintos en `ost_list_items` según la lista: `list_id=2` ("Sitio de Aduana", campo general de tickets) vs `list_id=7` ("CCTV Sitios", campo propio del depto CCTV). Ver `SITE_LIST_IDS` en `ticketsRepository.ts` y `routes/admin.ts`.
-- **Prioridad/estado se traducen por la PALABRA real de osTicket, nunca por ID fijo.** Si alguien reordena `ost_ticket_priority`/`ost_ticket_status` en osTicket, un mapeo por ID queda mal sin que nadie lo note — ya pasó una vez. Ver `PRIORITY_WORD_TO_APP` / `STATUS_NAME_TO_APP`.
-- **Número de ticket visible = `ost_ticket.number`, nunca `ticket_id`.** Son contadores distintos y se desalinean (desde `ticket_id` 1890, el 2026-09-20, `number` va +1). El link a osTicket sí usa `ticket_id` (`tickets.php?id=`). Ver `toDisplayTicketId`.
-- **Fechas:** la base guarda DATETIME ya en UTC. `mysqlDatetimeToIso` marca el string como UTC explícitamente antes de convertir — dejar que el driver de MySQL reinterprete con timezone local causó un desfasaje de 6h en la UI y un bug de reenvío duplicado en el poller.
-- **Detección de sitios nuevos:** `GET /api/admin/sites/unmapped` compara en vivo los valores reales de `ost_list_items` contra `site-metadata.json` y devuelve los que faltan configurar. `AdminSitesPage.tsx` ya lo consume (sección "Sitios sin configurar"): un sitio nuevo en osTicket **sí aparece ahí** (como texto plano, sin ícono — no tiene `type` todavía) con un botón "Asignar coordenadas", pero **no aparece en el mapa** hasta que un admin le asigna tipo + lat/lng manualmente. Mientras tanto sus tickets sí cuentan en las métricas globales pero no en el desglose por sitio.
-- **Acceso admin:** ya no es solo por URL directa — hay un botón discreto (ícono candado) en la barra superior del dashboard (`TopBar.tsx`) que abre un modal de login (`AdminLoginModal.tsx`), sin navegar a una página aparte. `/admin/login` sigue existiendo como página completa para acceso directo por URL (bookmarks, etc.), reutilizando el mismo `AdminLoginForm.tsx`. Tanto el modal como la página de admin (`AdminSitesPage.tsx`) llevan el logo de GCS.
+- **Fechas de Znuny: `create_time`/`change_time` están en hora local `America/El_Salvador` (UTC−6 fijo, sin horario de verano), NO en UTC — lo opuesto a osTicket.** Siempre `znunyLocalToIso`; nunca `mysqlDatetimeToIso` con datos de Znuny. `escalation_solution_time` sí es epoch Unix real (0 = sin vencimiento). Las marcas de agua de los pollers van por id donde se puede, o como string crudo, nunca como `Date`. En el frontend las fechas se muestran con `timeZone: "America/El_Salvador"` y "Cerrados hoy"/tendencia usan el día calendario de El Salvador, no UTC ni el reloj del navegador.
+- **Túnel SSH siempre (dev y prod), nunca conexión directa a MariaDB de Znuny.** Usuario `dashboard_ro` (solo `SELECT`) y túnel por el usuario `dashboard-tunnel` (sin shell, solo reenvío a `127.0.0.1:3306`). En el servidor del dashboard corre el servicio systemd **`znuny-tunnel`** (autossh, `Restart=always`) escuchando en `127.0.0.1:3307`; en local: `ssh -i <llave> -N -L 3307:127.0.0.1:3306 ubuntu@<ip-znuny>`. Si el túnel cae el backend arranca igual, las rutas de Znuny dan 503 y los pollers reintentan sin avanzar la marca de agua; el histórico sigue funcionando.
+- **Sin listas fijas de Znuny.** Colas, estados, prioridades, tipos y servicios salen de `/api/catalog` o de los datos en vivo. Estado y prioridad se colorean por **tipo de estado** (new/open/pending/closed) y por **rank** de prioridad. "Abierto" = tipo `new`/`open`/`pending`; los `pending *` se normalizan a `pending`; se excluyen los tipos `merged`/`removed`; un tipo desconocido se trata como `open` con `console.warn`. **Rojo en el mapa** = algún ticket abierto con la prioridad válida de mayor id (`topPriorityId`, hoy "crítica").
+- **Sitio = campo dinámico `Ubicacion`**, buscado por `dynamic_field.name`, nunca por id. Una clave sin sitio mapeado (o quitada de `PossibleValues`) igual cuenta en las métricas globales (con `siteId: ""` y la clave cruda como nombre) pero no en el mapa ni rompe nada.
+- **Número de ticket visible = `ticket.tn`.** El link "Ver en Znuny" usa `ticket.id`: `{ZNUNY_BASE_URL}/index.pl?Action=AgentTicketZoom;TicketID=<id>`. Sin `ZNUNY_BASE_URL` el link sale relativo (roto): hay que definirla.
+- **Restricción por cola** (`allowedQueues`): se aplica en el SQL y en las rooms de socket.io, nunca solo filtrando en el frontend. Si renombran una cola en Znuny, el nombre viejo en `allowedQueues` deja al usuario sin esa cola sin error; el panel admin la marca "Cola inexistente en Znuny". Un `ticket:status_changed`/`ticket:removed` de un ticket que el cliente no tiene cargado se ignora.
+- **`DATA_DIR` fuera de `dist/`.** Antes `users.json`/`site-metadata.json` vivían en `backend/dist/data/` y un `rm -rf dist` o un build limpio los borraba. Con `DATA_DIR` definido, al arrancar se **copian** (sin mover ni pisar) desde `src/data`/`dist/data` los archivos que falten. En prod será `/home/ubuntu/mapa-incidencias-data`; **hoy (8-nov-2026) los datos reales de prod siguen en `backend/dist/data/`** hasta que se haga el deploy con `DATA_DIR` configurado. Sin `DATA_DIR` se usa `src/data` (compatibilidad).
+- **Histórico osTicket: snapshot el lunes 9-nov-2026.** `OSTICKET_SOURCE=live|snapshot` (sin definir: `live` si hay `DB_HOST`). Procedimiento cuando osTicket se apague: en el servidor `node dist/scripts/osticketSnapshot.js` (lee todo, compara contra `COUNT(*)` y aborta sin escribir si no coincide; respalda el anterior como `.bak-<fecha>`), poner `OSTICKET_SOURCE=snapshot` y `pm2 restart backend`; verificar "Datos congelados al dd/mm/aaaa" y que no haya link a osTicket.
+- **osTicket (solo histórico) — reglas que siguen vigentes en `legacy/osticket/`:** sitios por NOMBRE (listas `list_id=2` vs `7`, ver `SITE_LIST_IDS`), prioridad/estado por la PALABRA real (`PRIORITY_WORD_TO_APP`/`STATUS_NAME_TO_APP`), número visible = `ost_ticket.number` (no `ticket_id`), y fechas **UTC** (`mysqlDatetimeToIso`; watermark como string crudo).
+- **Navegadores de TV:** `hudScale` escala solo los paneles flotantes (`.hud-scale`) con CSS `zoom`, **nunca el contenedor de Leaflet** (desfasa clics/arrastre). El encuadre inicial usa `fitBounds` sobre `EL_SALVADOR_BOUNDS`, no un zoom fijo.
+- **Nunca escribir en Znuny ni en osTicket.** Las conexiones de la app son de solo lectura; cualquier depuración en prod se hace a mano y con respaldo (ver memoria del 18-sep-2026). `backend/backups/` está en `.gitignore` porque contiene datos de producción.
 
 ## Configuración / secretos (NO están acá, transferir a mano)
 
-`backend/.env` (gitignored, ver `backend/.env.example` para las claves):
-- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — conexión de solo lectura a la base real de osTicket.
-- `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH` (bcrypt — la contraseña real nunca se guarda en texto plano en ningún archivo, se genera con `npm run hash-password -- "contraseña"` dentro de `backend/`), `JWT_SECRET`.
+`backend/.env` (gitignored, ver `backend/.env.example`):
+- `ZNUNY_DB_HOST`, `ZNUNY_DB_PORT`, `ZNUNY_DB_USER`, `ZNUNY_DB_PASSWORD`, `ZNUNY_DB_NAME` — conexión de solo lectura a Znuny (por el túnel: host `127.0.0.1`, puerto `3307`).
+- `ZNUNY_BASE_URL` — base del link "Ver en Znuny" (`https://mesadeservicio.gcslatam.com/znuny`, sin barra final).
+- `DATA_DIR` — directorio de `users.json`, `site-metadata.json` y `osticket-snapshot.json` (prod: `/home/ubuntu/mapa-incidencias-data`).
+- `OSTICKET_SOURCE` — `live` | `snapshot` (histórico de osTicket).
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — conexión de solo lectura al osTicket viejo (solo histórico en modo `live`).
+- `OSTICKET_BASE_URL` — para el link "Ver en osTicket" (solo modo `live`).
+- `JWT_SECRET` — firma las cookies de sesión de todos los usuarios.
+- `GMAIL_USER`, `GMAIL_APP_PASSWORD` — correo de recuperación (contraseña de aplicación de Gmail).
+- `FRONTEND_BASE_URL` — base del link del correo de recuperación (`http://localhost:5173` en local).
 
-Si migrás de máquina/cuenta, copiá `backend/.env` a mano — no viaja con git.
+`frontend/.env`: `VITE_CARTO_API_KEY` — sin ella los tiles muestran "API KEY REQUIRED".
 
-## Estado / historial reciente
+Infraestructura que no viaja con git: en el servidor del dashboard, el servicio `znuny-tunnel` (llave `~/.ssh/znuny_tunnel`, huella en `~/.ssh/known_hosts_znuny`); y los datos reales (`users.json`, `site-metadata.json`, snapshot) en `DATA_DIR` (hoy todavía `backend/dist/data/` en prod). Si migrás de máquina/servidor, copiá los `.env`, esos JSON y recreá el túnel.
 
-- `f1c1c16` — migración del backend de datos mock a datos reales de osTicket vía MySQL.
-- Repo remoto: `https://github.com/devopsGSC/mapa-incidencias-.git`.
-- Trabajo reciente sin commitear: capa de auth admin (`auth.ts`, `routes/admin.ts`), panel `frontend/src/admin/`, `adminClient.ts`, script de hash de password (`backend/src/scripts/`), `site-metadata.seed.json`. Revisar `git status` antes de asumir que esto ya está en el repo.
+## Estado / historial
+
+- Repo remoto: `https://github.com/devopsGSC/mapa-incidencias-.git`. Se trabaja en `develop`; `main` es la rama principal.
+- Hitos (ver `git log` para el detalle):
+  - 16–17 jul 2026 — commit inicial; migración de mock a osTicket real vía MySQL (`f1c1c16`); sonido de ticket nuevo.
+  - 20 jul — panel admin de sitios (`cced1f1`), prioridad "urgente", link a osTicket.
+  - 21–22 jul — auth multi-usuario con roles y recuperación de contraseña por Gmail; fix de reconexión de socket.io; notificación de cambios de estado.
+  - 24 jul – 4 ago — restricción por departamento, equipo por ticket, SLA (anillo/barra), filtros por departamento/equipo/agente.
+  - 10 ago — admin puede cambiar contraseñas de otros usuarios.
+  - 27 ago — API key de CARTO (error "API KEY REQUIRED" en producción).
+  - 18 sep — depuración de 16 tickets duplicados directamente en la base de prod (ver memoria).
+  - 23 sep — adaptación a navegador de TV (Xiaomi 50").
+  - 6 oct — número visible de osTicket en vez de `ticket_id` (`5a58e97`).
+  - 8 nov — migración a Znuny: el dashboard lee Znuny 7.3.5 por túnel SSH con su modelo nativo (colas, estados, prioridades), permisos por cola (`allowedQueues`), sitios por clave de `Ubicacion`, `DATA_DIR` fuera de `dist/` y osTicket movido a la vista "Histórico osTicket" (en vivo hasta el snapshot del 9-nov). Diseño: `docs/superpowers/specs/2026-11-08-migracion-znuny-design.md`.
+- Pendiente del pase a producción: deploy con `DATA_DIR`/`ZNUNY_BASE_URL`/`OSTICKET_SOURCE` en el `.env`, asignar colas a los 8 usuarios restringidos desde el panel (hasta entonces ven el aviso), y el snapshot de osTicket del 9-nov.
+- Sin commitear (al 8-nov-2026): capturas sueltas en `frontend/` y `.playwright-mcp/`. Revisar `git status` antes de asumir.
+- Las conversaciones de Claude Code anteriores al 6-oct-2026 se perdieron por la limpieza automática; desde el 6-nov `cleanupPeriodDays` está en 36500. Lo importante debe quedar en este archivo.
