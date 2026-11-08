@@ -4,7 +4,7 @@ import logo from "../img/logo_gcs_blanco.png";
 import { SoundToggle } from "./SoundToggle";
 import { SyncStatus } from "./SyncStatus";
 
-export type DashboardView = "map" | "metrics";
+export type DashboardView = "map" | "metrics" | "legacy";
 
 interface TopBarProps {
   view: DashboardView;
@@ -46,6 +46,9 @@ export function TopBar({
           </ViewButton>
           <ViewButton active={view === "metrics"} onClick={() => onViewChange("metrics")}>
             Métricas
+          </ViewButton>
+          <ViewButton active={view === "legacy"} onClick={() => onViewChange("legacy")}>
+            Histórico osTicket
           </ViewButton>
         </nav>
         <SoundToggle />

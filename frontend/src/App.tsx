@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
+import { LegacyView } from "./legacy/LegacyView";
 import { MapHeroView } from "./components/MapHeroView";
 import { MetricsView } from "./components/MetricsView";
 import { NoQueueAccessBanner } from "./components/NoQueueAccessBanner";
@@ -56,7 +57,11 @@ export default function App() {
         </div>
       )}
 
-      {loading || !stats || !catalog ? (
+      {view === "legacy" ? (
+        <div className="h-full">
+          <LegacyView />
+        </div>
+      ) : loading || !stats || !catalog ? (
         <div className="mono-label flex h-full items-center justify-center text-xs text-[color:var(--muted)]">
           Cargando dashboard...
         </div>
