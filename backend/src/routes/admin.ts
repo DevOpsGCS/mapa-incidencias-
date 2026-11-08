@@ -2,6 +2,8 @@ import { NextFunction, Response, Router } from "express";
 import { readOnlyQuery } from "../legacy/osticket/db";
 import { requireRole } from "../auth";
 import { normalizeName } from "../lib/normalizeName";
+import { respondLegacyDbError } from "../lib/legacyErrors";
+import { disconnectUserSockets } from "../sockets/io";
 import { respondZnunyError } from "../lib/znunyErrors";
 import { getCatalog, getSiteOptions } from "../znuny/catalogRepository";
 import { ZnunyUnavailableError } from "../znuny/db";
@@ -17,25 +19,6 @@ adminRouter.use(requireRole("admin"));
 
 const VALID_SITE_TYPES: SiteType[] = ["aduana_terrestre", "aduana_maritima", "aduana_aerea", "sede"];
 const VALID_ROLES: Role[] = ["admin", "normal"];
-
-const LEGACY_UNAVAILABLE_CODES = new Set([
-  "ECONNREFUSED",
-  "ETIMEDOUT",
-  "ECONNRESET",
-  "ENOTFOUND",
-  "PROTOCOL_CONNECTION_LOST",
-  "ER_ACCESS_DENIED_ERROR",
-]);
-
-/** osTicket inalcanzable (túnel caído, DB apagada) -> 503 claro en vez de 500. */
-function respondLegacyDbError(error: unknown, res: Response, next: NextFunction): void {
-  const code = (error as { code?: string } | null)?.code;
-  if (code && LEGACY_UNAVAILABLE_CODES.has(code)) {
-    res.status(503).json({ error: "osTicket no disponible" });
-    return;
-  }
-  next(error);
-}
 
 /** Departamentos reales de osTicket — misma regla de oro que sitios: nunca hardcodear, siempre en vivo contra ost_department. */
 async function loadRealDepartmentNames(): Promise<string[]> {
@@ -173,7 +156,7 @@ adminRouter.get("/departments", async (_req, res, next) => {
 
 // Una cola renombrada en Znuny deja un nombre viejo en allowedQueues: se marca
 // en unknownQueues (el usuario pierde acceso a esa cola sin error). Si Znuny
-// está caído no se puede saber, se devuelve [] sin fallar.
+// está caído no se puede saber, unknownQueues es null, sin fallar.
 adminRouter.get("/users", async (_req, res, next) => {
   try {
     let known: Set<string> | null = null;
@@ -185,7 +168,8 @@ adminRouter.get("/users", async (_req, res, next) => {
     res.json(
       usersRepository.findAll().map((user) => ({
         ...user,
-        unknownQueues: known ? (user.allowedQueues ?? []).filter((q) => !known!.has(q)) : [],
+        // null = no se pudo verificar (Znuny caído): la UI no debe mostrar un falso OK.
+        unknownQueues: known ? (user.allowedQueues ?? []).filter((q) => !known!.has(q)) : null,
       }))
     );
   } catch (error) {
@@ -217,6 +201,11 @@ async function resolveAllowedQueues(raw: unknown): Promise<ResolveQueuesResult> 
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Errores de osTicket (config/conexión) o de Znuny -> 503; el resto sigue a next. */
+function respondUpstreamError(error: unknown, res: Response, next: NextFunction): void {
+  respondLegacyDbError(error, res, (e) => respondZnunyError(e, res, next));
+}
+
 adminRouter.post("/users", async (req, res, next) => {
   try {
     const { username, email, password, role, allowedDepartments, allowedQueues } = (req.body ?? {}) as {
@@ -245,7 +234,10 @@ adminRouter.post("/users", async (req, res, next) => {
       return;
     }
 
-    const realDepartments = await loadRealDepartmentNames();
+    // osTicket solo se consulta si realmente hay departamentos que validar:
+    // crear usuarios (y darles colas de Znuny) no debe depender de osTicket.
+    const needsDepartmentCheck = Array.isArray(allowedDepartments) && allowedDepartments.length > 0;
+    const realDepartments = needsDepartmentCheck ? await loadRealDepartmentNames() : [];
     const resolvedDepartments = resolveAllowedDepartments(allowedDepartments, realDepartments);
     if (!resolvedDepartments.ok) {
       res.status(400).json({ error: resolvedDepartments.error });
@@ -277,7 +269,7 @@ adminRouter.post("/users", async (req, res, next) => {
     }
     res.status(201).json(result.user);
   } catch (error) {
-    respondZnunyError(error, res, next);
+    respondUpstreamError(error, res, next);
   }
 });
 
@@ -305,6 +297,7 @@ adminRouter.patch("/users/:username/role", (req, res) => {
     res.status(404).json({ error: "Usuario no encontrado." });
     return;
   }
+  disconnectUserSockets(username);
   res.json(updated);
 });
 
@@ -338,7 +331,10 @@ adminRouter.patch("/users/:username/profile", async (req, res, next) => {
       updates.email = email.trim();
     }
     if (allowedDepartments !== undefined) {
-      const realDepartments = await loadRealDepartmentNames();
+      const realDepartments =
+        Array.isArray(allowedDepartments) && allowedDepartments.length > 0
+          ? await loadRealDepartmentNames()
+          : [];
       const resolvedDepartments = resolveAllowedDepartments(allowedDepartments, realDepartments);
       if (!resolvedDepartments.ok) {
         res.status(400).json({ error: resolvedDepartments.error });
@@ -367,9 +363,12 @@ adminRouter.patch("/users/:username/profile", async (req, res, next) => {
       res.status(409).json({ error: message });
       return;
     }
+    // Rooms fijadas al conectar: se corta al usuario para que reconecte con los permisos nuevos
+    // (se usa el username VIEJO: los sockets están en su room).
+    disconnectUserSockets(currentUsername);
     res.json(result.user);
   } catch (error) {
-    respondZnunyError(error, res, next);
+    respondUpstreamError(error, res, next);
   }
 });
 
@@ -412,5 +411,6 @@ adminRouter.delete("/users/:username", (req, res) => {
     res.status(404).json({ error: "Usuario no encontrado." });
     return;
   }
+  disconnectUserSockets(username);
   res.json({ ok: true });
 });

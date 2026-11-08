@@ -11,8 +11,10 @@ function getPool(): mysql.Pool {
   if (pool) return pool;
   for (const name of requiredEnvVars) {
     if (!process.env[name]) {
-      throw new Error(
-        `Falta la variable de entorno ${name}. Revisa backend/.env (ver .env.example).`
+      // code reconocible: las rutas lo traducen a 503 (osTicket no configurado).
+      throw Object.assign(
+        new Error(`Falta la variable de entorno ${name}. Revisa backend/.env (ver .env.example).`),
+        { code: "LEGACY_DB_NOT_CONFIGURED" }
       );
     }
   }

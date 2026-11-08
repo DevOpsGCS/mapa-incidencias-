@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../auth";
+import { respondLegacyDbError } from "../lib/legacyErrors";
 import { fetchLegacyTickets, getLegacyMeta } from "../legacy/osticket/source";
 import { usersRepository } from "../repositories/usersRepository";
 
@@ -13,7 +14,7 @@ legacyRouter.get("/osticket/tickets", async (req, res, next) => {
     const allowedDepartments = usersRepository.getAllowedDepartments(req.user!.username);
     res.json(await fetchLegacyTickets(allowedDepartments));
   } catch (error) {
-    next(error);
+    respondLegacyDbError(error, res, next);
   }
 });
 
@@ -21,6 +22,6 @@ legacyRouter.get("/osticket/meta", async (_req, res, next) => {
   try {
     res.json(await getLegacyMeta());
   } catch (error) {
-    next(error);
+    respondLegacyDbError(error, res, next);
   }
 });

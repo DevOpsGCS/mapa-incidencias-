@@ -6,9 +6,7 @@ import { getCatalog } from "../znuny/catalogRepository";
 
 export const catalogRouter = Router();
 
-catalogRouter.use(requireAuth);
-
-catalogRouter.get("/catalog", async (_req, res, next) => {
+catalogRouter.get("/catalog", requireAuth, async (_req, res, next) => {
   try {
     res.json(await getCatalog());
   } catch (error) {
@@ -16,7 +14,7 @@ catalogRouter.get("/catalog", async (_req, res, next) => {
   }
 });
 
-catalogRouter.get("/me/access", (req, res) => {
+catalogRouter.get("/me/access", requireAuth, (req, res) => {
   const access = usersRepository.getQueueAccess(req.user!.username);
   res.json({ queueAccess: access.kind });
 });

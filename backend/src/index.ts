@@ -12,6 +12,7 @@ import { legacyRouter } from "./routes/legacy";
 import { sitesRouter } from "./routes/sites";
 import { ticketsRouter } from "./routes/tickets";
 import { usersRepository } from "./repositories/usersRepository";
+import { setIo, userRoom } from "./sockets/io";
 import { roomsForAccess } from "./znuny/queueAccess";
 import { startZnunyStatePoller } from "./sockets/znunyStatePoller";
 import { startZnunyTicketPoller } from "./sockets/znunyTicketPoller";
@@ -50,6 +51,7 @@ if (require.main === module) {
   const io = new Server(httpServer, {
     cors: { origin: ALLOWED_ORIGINS, credentials: true },
   });
+  setIo(io);
 
   /** Extrae un valor de cookie de un header "cookie" crudo — sin agregar una dependencia nueva solo para esto. */
   function readCookieValue(cookieHeader: string | undefined, name: string): string | null {
@@ -82,6 +84,8 @@ if (require.main === module) {
   io.on("connection", (socket) => {
     const { username } = socket.data.session as { username: string };
     socket.join(roomsForAccess(usersRepository.getQueueAccess(username)));
+    // Room propia para poder cortar el socket si el admin cambia sus permisos.
+    socket.join(userRoom(username));
 
     console.log(`[socket] cliente conectado: ${socket.id}`);
     socket.on("disconnect", () => {
