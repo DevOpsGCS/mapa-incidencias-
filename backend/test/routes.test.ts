@@ -50,9 +50,14 @@ import { app } from "../src/index";
 import { signSessionToken } from "../src/auth";
 import { ZnunyUnavailableError } from "../src/znuny/db";
 
-const cookie = (user: string, role: "admin" | "normal") => [
-  `session_token=${signSessionToken(user, role)}`,
-];
+// Usuarios "existentes" para requireAuth/requireRole (que releen el usuario
+// y su rol de usersRepository): cookie() registra al usuario con ese rol.
+const knownUsers = new Map<string, "admin" | "normal">();
+const cookie = (user: string, role: "admin" | "normal") => {
+  knownUsers.set(user, role);
+  return [`session_token=${signSessionToken(user, role)}`];
+};
+const findKnownUser = (u: string) => (knownUsers.has(u) ? { username: u, role: knownUsers.get(u) } : undefined);
 const catalog = {
   queues: [{ id: 1, name: "Soporte", parent: null, valid: true }],
   states: [],
@@ -66,6 +71,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   m.getCatalog.mockResolvedValue(catalog);
   m.users.getAllowedDepartments.mockReturnValue(null);
+  m.users.findByUsername.mockImplementation(findKnownUser);
 });
 
 describe("tickets y acceso", () => {
@@ -254,7 +260,9 @@ describe("admin", () => {
     });
 
     it("PATCH role y DELETE cortan al usuario", async () => {
-      m.users.findByUsername.mockReturnValue({ role: "normal" });
+      m.users.findByUsername.mockImplementation((u: string) =>
+        u === "ana" ? { username: "ana", role: "normal" } : findKnownUser(u)
+      );
       m.users.setRole = vi.fn().mockReturnValue({ username: "ana" });
       (m.users as any).remove = vi.fn().mockReturnValue(true);
       await request(app).patch("/api/admin/users/ana/role").set("Cookie", admin).send({ role: "admin" });
@@ -262,5 +270,31 @@ describe("admin", () => {
       expect(m.disconnectUserSockets).toHaveBeenCalledTimes(2);
       expect(m.disconnectUserSockets).toHaveBeenCalledWith("ana");
     });
+  });
+});
+
+describe("sesión de un usuario que ya no existe o cambió de rol", () => {
+  it("usuario borrado con JWT vigente -> 401 en tickets e histórico", async () => {
+    const c = [`session_token=${signSessionToken("borrado", "normal")}`]; // no registrado
+    m.fetchLegacyTickets.mockResolvedValue([]);
+    m.findAllTickets.mockResolvedValue([]);
+    expect((await request(app).get("/api/legacy/osticket/tickets").set("Cookie", c)).status).toBe(401);
+    expect((await request(app).get("/api/tickets").set("Cookie", c)).status).toBe(401);
+    expect(m.fetchLegacyTickets).not.toHaveBeenCalled();
+    expect(m.findAllTickets).not.toHaveBeenCalled();
+  });
+
+  it("admin degradado (JWT dice admin, repo dice normal) -> 403 en /admin/users", async () => {
+    const c = [`session_token=${signSessionToken("degradado", "admin")}`];
+    knownUsers.set("degradado", "normal");
+    const res = await request(app).get("/api/admin/users").set("Cookie", c);
+    expect(res.status).toBe(403);
+  });
+
+  it("/auth/me devuelve el rol actual del repositorio, no el del JWT", async () => {
+    const c = [`session_token=${signSessionToken("degradado2", "admin")}`];
+    knownUsers.set("degradado2", "normal");
+    const res = await request(app).get("/api/auth/me").set("Cookie", c);
+    expect(res.body).toEqual({ username: "degradado2", role: "normal" });
   });
 });

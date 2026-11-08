@@ -4,7 +4,7 @@ import cors from "cors";
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { SESSION_COOKIE_NAME, verifySessionTokenRaw } from "./auth";
+import { resolveSessionUser, SESSION_COOKIE_NAME } from "./auth";
 import { adminRouter } from "./routes/admin";
 import { authRouter } from "./routes/auth";
 import { catalogRouter } from "./routes/catalog";
@@ -76,7 +76,8 @@ if (require.main === module) {
   // debe recibir tickets en vivo, igual que /api/tickets ya lo exige por HTTP.
   io.use((socket, next) => {
     const token = readCookieValue(socket.handshake.headers.cookie, SESSION_COOKIE_NAME);
-    const session = token ? verifySessionTokenRaw(token) : null;
+    // Igual que requireAuth: además del JWT, el usuario tiene que seguir existiendo.
+    const session = resolveSessionUser(token);
     if (!session) {
       next(new Error("unauthorized"));
       return;

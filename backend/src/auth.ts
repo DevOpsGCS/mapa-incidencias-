@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { usersRepository } from "./repositories/usersRepository";
 import { Role } from "./types";
 
 declare global {
@@ -49,37 +50,44 @@ function verifySessionToken(token: string): { username: string; role: Role } | n
   }
 }
 
-/** Exige sesión válida (cualquier rol). Adjunta req.user. */
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const token = req.cookies?.[SESSION_COOKIE_NAME];
+/**
+ * Token válido Y usuario todavía existente. El rol se relee de
+ * usersRepository (nunca del JWT): un usuario borrado/renombrado pierde el
+ * acceso y un admin degradado pierde el rol de inmediato, aunque su cookie
+ * siga vigente hasta 8 h.
+ */
+export function resolveSessionUser(token: string | null | undefined): { username: string; role: Role } | null {
   const session = token ? verifySessionToken(token) : null;
-  if (!session) {
+  if (!session) return null;
+  const stored = usersRepository.findByUsername(session.username);
+  if (!stored) return null;
+  return { username: session.username, role: stored.role };
+}
+
+/** Exige sesión válida (cualquier rol) de un usuario existente. Adjunta req.user. */
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const user = resolveSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  if (!user) {
     res.status(401).json({ error: "No autenticado." });
     return;
   }
-  req.user = session;
+  req.user = user;
   next();
 }
 
-/** Exige sesión válida Y que el rol esté en la lista permitida. */
+/** Exige sesión válida Y que el rol ACTUAL del usuario esté en la lista permitida. */
 export function requireRole(...roles: Role[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const token = req.cookies?.[SESSION_COOKIE_NAME];
-    const session = token ? verifySessionToken(token) : null;
-    if (!session) {
+    const user = resolveSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+    if (!user) {
       res.status(401).json({ error: "No autenticado." });
       return;
     }
-    if (!roles.includes(session.role)) {
+    if (!roles.includes(user.role)) {
       res.status(403).json({ error: "No autorizado para este recurso." });
       return;
     }
-    req.user = session;
+    req.user = user;
     next();
   };
-}
-
-/** Verifica el token de sesión "a mano" (fuera del ciclo request/response de Express) — lo usa el middleware de socket.io. */
-export function verifySessionTokenRaw(token: string): { username: string; role: Role } | null {
-  return verifySessionToken(token);
 }
