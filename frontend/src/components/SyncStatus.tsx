@@ -56,7 +56,7 @@ export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncSt
     <div
       className="glass-panel mono-label flex items-center gap-2 rounded-full px-3.5 py-2 text-[11.5px]"
       style={{ color }}
-      title={!serviceDeskOk ? "El dashboard sigue conectado, pero no puede consultar Znuny" : undefined}
+      title={!serviceDeskOk ? "El dashboard sigue conectado, pero no puede consultar la Mesa de Servicio" : undefined}
     >
       <span className="relative flex h-1.5 w-1.5">
         <span

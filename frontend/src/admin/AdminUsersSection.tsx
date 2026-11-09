@@ -94,7 +94,7 @@ function DepartmentsCheckboxGroup({ departments, selected, onChange }: Departmen
 interface QueueAccessFieldProps {
   mode: QueueAccessMode;
   selected: string[];
-  /** null = el catálogo de colas no se pudo cargar (Znuny no disponible). */
+  /** null = el catálogo de colas no se pudo cargar (Mesa de Servicio no disponible). */
   catalogQueues: Catalog["queues"] | null;
   onModeChange: (mode: QueueAccessMode) => void;
   onSelectedChange: (next: string[]) => void;
@@ -110,7 +110,7 @@ function QueueAccessField({ mode, selected, catalogQueues, onModeChange, onSelec
   const { known, unknown } = splitSelectedQueues(selected, catalogQueues);
   return (
     <div className="block text-sm text-[color:var(--text-secondary)]">
-      Colas de Znuny
+      Colas de la Mesa de Servicio
       <div className="mt-1 space-y-1.5">
         {QUEUE_MODE_OPTIONS.map((option) => (
           <label key={option.mode} className="flex items-center gap-2 text-sm text-[color:var(--text)]">
@@ -158,12 +158,12 @@ function QueueAccessField({ mode, selected, catalogQueues, onModeChange, onSelec
           />
         ) : (
           <p className="mt-2 text-sm text-[color:var(--text-disabled)]">
-            No se pudo cargar el catálogo de colas (Znuny no disponible).
+            No se pudo cargar el catálogo de colas (Mesa de Servicio no disponible).
           </p>
         ))}
       {mode === "none" && (
         <p className="mt-2 text-xs text-[color:var(--text-disabled)]">
-          El usuario no verá tickets de Znuny hasta que se le asignen colas.
+          El usuario no verá tickets de la Mesa de Servicio hasta que se le asignen colas.
         </p>
       )}
     </div>

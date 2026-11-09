@@ -102,7 +102,7 @@ function Toast({ notification, priorityRank, onDismiss }: ToastProps) {
             target="_blank"
             rel="noopener"
             className="mt-1 line-clamp-2 block text-xl font-medium text-[color:var(--text)] hover:text-[color:var(--cyan)] hover:underline"
-            title="Ver ticket en Znuny"
+            title="Ver ticket en la Mesa de Servicio"
           >
             {headline}
           </a>

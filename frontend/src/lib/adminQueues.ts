@@ -48,9 +48,9 @@ export function unknownQueuesNotices(
   unknownQueues: string[] | null
 ): { kind: "error"; text: string }[] | { kind: "unverified"; text: string } {
   if (unknownQueues === null) {
-    return { kind: "unverified", text: "No se pudo verificar (Znuny no disponible)" };
+    return { kind: "unverified", text: "No se pudo verificar (Mesa de Servicio no disponible)" };
   }
-  return unknownQueues.map((q) => ({ kind: "error" as const, text: `Cola inexistente en Znuny: ${q}` }));
+  return unknownQueues.map((q) => ({ kind: "error" as const, text: `Cola inexistente en la Mesa de Servicio: ${q}` }));
 }
 
 /**

@@ -216,7 +216,7 @@ export function AdminSitesSection() {
                       onClick={() => openEditForm(site)}
                       disabled={!site.znunyKey}
                       aria-label={`Editar ${displayName(site)}`}
-                      title={site.znunyKey ? "Editar" : "Sitio sin clave de Znuny: solo existe en el histórico"}
+                      title={site.znunyKey ? "Editar" : "Sitio sin clave en la Mesa de Servicio: solo existe en el histórico"}
                       className="mr-2 rounded p-1 text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text)] disabled:cursor-not-allowed disabled:text-[color:var(--text-disabled)]"
                     >
                       <IconEdit size={15} stroke={2} />

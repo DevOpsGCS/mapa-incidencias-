@@ -197,7 +197,7 @@ export function TicketsTable({ tickets, sites, catalog }: TicketsTableProps) {
                     target="_blank"
                     rel="noopener"
                     className="inline-flex items-center gap-1 hover:text-[color:var(--cyan)] hover:underline"
-                    title="Ver ticket en Znuny"
+                    title="Ver ticket en la Mesa de Servicio"
                   >
                     <span className="truncate">{ticket.title}</span>
                     <IconExternalLink size={12} stroke={2} className="flex-shrink-0" />

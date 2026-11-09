@@ -1,4 +1,4 @@
-import { IconExternalLink } from "@tabler/icons-react";
+import { ServiceDeskLink } from "./ServiceDeskLink";
 import { PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { SlaRing } from "./SlaRing";
 import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
@@ -221,15 +221,7 @@ export function DetailDrawer({ site, tickets, catalog, onClose }: DetailDrawerPr
                   <span className="mono-label text-[9px] text-[color:var(--muted-2)]">
                     {formatSvDateTime(ticket.createdAt)}
                   </span>
-                  <a
-                    href={ticket.znunyUrl}
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-1 rounded-md border border-[color:var(--glass-border)] px-2 py-0.5 text-[10px] text-[color:var(--text)] transition-colors hover:text-[color:var(--cyan)]"
-                  >
-                    Ver en Znuny
-                    <IconExternalLink size={11} stroke={2} />
-                  </a>
+                  <ServiceDeskLink href={ticket.znunyUrl} variant="short" />
                 </div>
               </div>
             );

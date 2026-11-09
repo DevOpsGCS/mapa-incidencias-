@@ -45,7 +45,7 @@ describe("unknownQueuesNotices", () => {
   it("null = no verificado, sin error rojo", () => {
     expect(unknownQueuesNotices(null)).toEqual({
       kind: "unverified",
-      text: "No se pudo verificar (Znuny no disponible)",
+      text: "No se pudo verificar (Mesa de Servicio no disponible)",
     });
   });
   it("lista vacía = sin avisos", () => {
@@ -53,7 +53,7 @@ describe("unknownQueuesNotices", () => {
   });
   it("una por cola desconocida", () => {
     expect(unknownQueuesNotices(["Vieja"])).toEqual([
-      { kind: "error", text: "Cola inexistente en Znuny: Vieja" },
+      { kind: "error", text: "Cola inexistente en la Mesa de Servicio: Vieja" },
     ]);
   });
 });
