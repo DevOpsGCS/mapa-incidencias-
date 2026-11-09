@@ -28,21 +28,19 @@ export function TopBar({
   onLogout,
 }: TopBarProps) {
   return (
-    <header className="hud-scale fixed left-0 right-0 top-0 z-30 flex items-center justify-between gap-4 bg-gradient-to-b from-[#080c16] to-transparent px-5 py-4">
+    <header className="hud-scale fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between gap-4 bg-bg px-5">
       <div className="flex items-center gap-3">
-        <img src={logo} alt="Global Customs Solutions" className="h-9 w-auto" />
+        <img src={logo} alt="Global Customs Solutions" className="h-8 w-auto" />
         <div>
-          <h1 className="font-display text-lg font-semibold text-[color:var(--text)]">
-            Dashboard de Tickets — Sitios El Salvador
-          </h1>
-          <p className="mono-label mt-0.5 text-[10px] text-[color:var(--muted)]">
-            Global Customs Solutions · Mesa de ayuda
+          <h1 className="text-[15px] font-bold leading-tight text-text-strong">Mapa de Incidencias</h1>
+          <p className="mono-label mt-0.5 font-mono text-[10px] text-text-label">
+            EL SALVADOR · MESA DE SERVICIO
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
-        <nav className="glass-panel flex items-center gap-1 rounded-full p-1">
+        <nav className="flex items-center gap-1.5">
           <ViewButton active={view === "map"} onClick={() => onViewChange("map")}>
             Mapa
           </ViewButton>
@@ -61,7 +59,7 @@ export function TopBar({
             onClick={onOpenAdmin}
             aria-label="Acceso administrador"
             title="Acceso administrador"
-            className="glass-panel flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--muted)] transition-colors hover:text-[color:var(--text)]"
+            className="flex h-9 w-9 items-center justify-center rounded-[6px] border border-line-control text-text transition-colors hover:text-text-strong"
           >
             <IconChevronRight size={16} stroke={2} />
           </button>
@@ -71,7 +69,7 @@ export function TopBar({
           onClick={onLogout}
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
-          className="glass-panel flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--muted)] transition-colors hover:text-[color:var(--text)]"
+          className="flex h-9 w-9 items-center justify-center rounded-[6px] border border-line-control text-text transition-colors hover:text-text-strong"
         >
           <IconLogout size={16} stroke={2} />
         </button>
@@ -93,10 +91,10 @@ function ViewButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+      className={`rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
         active
-          ? "bg-[#1A294C] text-[#7099FF]"
-          : "text-[color:var(--muted)] hover:text-[color:var(--text)]"
+          ? "border-accent-fill bg-accent-fill text-text-strong"
+          : "border-line-control text-text hover:text-text-strong"
       }`}
     >
       {children}

@@ -3,20 +3,20 @@ import { useEffect, useState } from "react";
 interface SyncStatusProps {
   connected: boolean;
   lastHeartbeatAt: Date | null;
-  /** false = el último latido avisó que el backend no pudo consultar Znuny. */
+  /** false = el último latido avisó que el backend no pudo consultar la Mesa de Servicio. */
   serviceDeskOk: boolean;
-}
-
-function formatCounter(seconds: number): string {
-  if (seconds < 1) return "0s";
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  return `${minutes}m`;
 }
 
 // Si no llega un heartbeat en más de 2 ciclos de poll (backend: ~20s c/u),
 // algo está trabado del lado del servidor aunque el socket siga conectado.
 const STALE_AFTER_SECONDS = 50;
+
+const NO_CONNECTION_LABEL = "Sin conexión con la Mesa de Servicio";
+
+function formatAgo(seconds: number): string {
+  if (seconds < 60) return `hace ${Math.max(seconds, 0)} s`;
+  return `hace ${Math.floor(seconds / 60)} min`;
+}
 
 /** Indicador de sincronización: "late" con cada poll real del backend (haya o no cambios). */
 export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncStatusProps) {
@@ -34,36 +34,37 @@ export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncSt
 
   let label: string;
   let color: string;
-  if (!connected) {
-    label = "--";
-    color = "var(--muted)";
+  let healthy = false;
+  if (secondsSince === null && connected) {
+    label = "Conectando…";
+    color = "var(--text-muted)";
   } else if (secondsSince === null) {
-    label = "--";
-    color = "var(--muted)";
+    label = "Conectando…";
+    color = "var(--data-p1)";
+  } else if (!connected) {
+    label = NO_CONNECTION_LABEL;
+    color = "var(--data-p1)";
   } else if (!serviceDeskOk) {
-    // El backend late pero no llega a Znuny (p. ej. túnel caído): no es "sano".
-    label = "sin conexión con la mesa de servicio";
-    color = "var(--red)";
+    // El backend late pero no llega a la Mesa de Servicio (p. ej. túnel caído): no es "sano".
+    label = NO_CONNECTION_LABEL;
+    color = "var(--data-p0)";
   } else if (isStale) {
-    label = formatCounter(secondsSince);
-    color = "var(--amber)";
+    label = formatAgo(secondsSince);
+    color = "var(--data-p1)";
   } else {
-    label = formatCounter(secondsSince);
-    color = "var(--cyan)";
+    label = formatAgo(secondsSince);
+    color = "var(--data-p3)";
+    healthy = true;
   }
 
   return (
     <div
-      className="glass-panel mono-label flex items-center gap-2 rounded-full px-3.5 py-2 text-[11.5px]"
-      style={{ color }}
+      className="flex h-9 items-center gap-2 rounded-[6px] border border-line-control px-3 font-mono text-[12px] text-text"
       title={!serviceDeskOk ? "El dashboard sigue conectado, pero no puede consultar la Mesa de Servicio" : undefined}
     >
-      <span className="relative flex h-1.5 w-1.5">
-        <span
-          className="absolute inline-flex h-full w-full rounded-full"
-          style={{ background: color }}
-        />
-        {connected && secondsSince !== null && !isStale && serviceDeskOk && (
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full rounded-full" style={{ background: color }} />
+        {healthy && (
           <span
             key={lastHeartbeatAt?.getTime()}
             className="heartbeat-blip absolute inline-flex h-full w-full rounded-full"

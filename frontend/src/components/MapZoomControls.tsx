@@ -15,7 +15,7 @@ const ZOOM_IN_KEYS = new Set(["+", "=", "Add", "PageUp", "ChannelUp", "MediaTrac
 const ZOOM_OUT_KEYS = new Set(["-", "_", "Subtract", "PageDown", "ChannelDown", "MediaTrackPrevious"]);
 
 const BUTTON_CLASS =
-  "flex h-12 w-12 items-center justify-center text-[color:var(--muted)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--text)] focus-visible:bg-white/[0.08] focus-visible:text-[color:var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--cyan)]";
+  "flex h-12 w-12 items-center justify-center text-text transition-colors hover:bg-surface-2 hover:text-text-strong focus-visible:bg-surface-2 focus-visible:text-text-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent-text)]";
 
 export function MapZoomControls({ homeBounds }: MapZoomControlsProps) {
   const map = useMap();
@@ -52,7 +52,7 @@ export function MapZoomControls({ homeBounds }: MapZoomControlsProps) {
   return (
     <div
       ref={containerRef}
-      className="hud-scale glass-panel absolute right-[312px] top-[78px] z-[1000] flex flex-col overflow-hidden"
+      className="hud-scale absolute right-[312px] top-[78px] z-[1000] flex flex-col overflow-hidden rounded-panel bg-surface-1"
     >
       <button type="button" aria-label="Acercar" className={BUTTON_CLASS} onClick={() => map.zoomIn()}>
         <Plus size={22} />
@@ -60,7 +60,7 @@ export function MapZoomControls({ homeBounds }: MapZoomControlsProps) {
       <button
         type="button"
         aria-label="Alejar"
-        className={`${BUTTON_CLASS} border-y border-[color:var(--glass-border)]`}
+        className={`${BUTTON_CLASS} border-y border-line`}
         onClick={() => map.zoomOut()}
       >
         <Minus size={22} />

@@ -28,6 +28,7 @@ export function MapView({
   onSelectSite,
 }: MapViewProps) {
   return (
+    <div className="relative h-full w-full">
     <MapContainer
       bounds={EL_SALVADOR_BOUNDS}
       boundsOptions={countryFitOptions()}
@@ -66,5 +67,13 @@ export function MapView({
         );
       })}
     </MapContainer>
+    {/* Viñeta: hermana del MapContainer (no dentro del contenedor de Leaflet).
+        Tiles en z 200, marcadores en 600, paneles por encima. */}
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0"
+      style={{ boxShadow: "inset 0 0 120px 40px var(--bg)", zIndex: 401 }}
+    />
+    </div>
   );
 }
