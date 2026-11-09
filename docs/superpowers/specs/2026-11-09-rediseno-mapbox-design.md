@@ -70,7 +70,7 @@ La palabra de la prioridad se muestra en su color. **Selección** = fondo `--sur
 - **DM Sans** 400/500/700 (Google Fonts en `index.html`, reemplaza Space Grotesk/Inter/Public Sans; fallback `system-ui`). **JetBrains Mono** para Nº de ticket, %, etiquetas técnicas.
 - Escala: mínimo 12 px; etiquetas 11 px solo en mayúsculas con `letter-spacing .12em`; KPI 30–32 px 700; títulos de página 22 px 700 `-0.01em`.
 - Radios: paneles del dashboard 20 px; tarjetas de Métricas/Admin 8 px (estilo Microsoft); chips 12; insignias 4; inputs/herramientas 6; botones y pestañas en píldora (100 px).
-- **Paneles sólidos**: se elimina `backdrop-filter` (pesado en navegadores de TV); `.glass-panel` pasa a `--surface-1`.
+- **Paneles de vidrio + glow (decisión del usuario 9-nov, reemplaza a "paneles sólidos")**: en todo el sistema (mapa, Métricas, Administración, notificaciones, flyouts, login) los paneles usan `--glass-bg: rgba(21,23,27,.72)` + `backdrop-filter: blur(12px) saturate(120%)` + borde interior `inset 0 0 0 1px rgba(255,255,255,.06)` + sombra suave `0 8px 30px rgba(0,0,0,.35)`. **Fallback**: `@supports not (backdrop-filter: blur(1px))` → fondo sólido `--surface-1`. **Glow** (halo suave, nunca en datos salvo el KPI crítico): elemento seleccionado/activo (pestaña activa, ítem de nav, fila/sitio seleccionado) con `0 0 0 1px rgba(0,122,252,.6), 0 0 16px rgba(0,122,252,.25)`; KPI "Crítica abiertos" > 0 con `0 0 18px rgba(255,77,109,.25)`. Los pulsos de los marcadores no cambian.
 - **Viñeta del mapa**: capa `pointer-events:none` con `box-shadow: inset 0 0 120px 40px var(--bg)` por encima de los tiles y por debajo de marcadores y paneles. No se toca el contenedor de Leaflet ni `hudScale`.
 
 ## 3. Mapa (estilo dashboard)
@@ -147,7 +147,7 @@ Todos los textos visibles (JSX, `title`, `aria-label`, mensajes) que digan "Znun
 | Mapbox fiel con azul `#007afc` | elegido por el usuario |
 | Ajustes de contraste (`#76829a`, `#0a6fe6`, `#3d9bff`) | los valores originales de Mapbox no llegan a WCAG AA en pantalla/TV |
 | Tinte en vez de barra lateral; selección con contorno | pedido del usuario ("muy diseño de IA") |
-| Paneles sólidos sin blur | look Mapbox y rendimiento en TV |
+| Paneles de vidrio + glow en todo el sistema, con fallback sólido | pedido del usuario el 9-nov tras ver la primera versión sólida ("eso me gustaba"); el fallback cubre navegadores de TV sin `backdrop-filter` |
 | Métricas y Admin estilo Microsoft, Mapa estilo dashboard | pedido del usuario |
 | Tema oscuro también en Admin/Métricas | supuesto por consistencia; el usuario no eligió |
 | Un solo `TicketDetail` y un solo `ServiceDeskLink` | evitar duplicación entre mapa, métricas y notificaciones |
