@@ -76,21 +76,21 @@ export function QueueTreeSelect(props: QueueTreeSelectProps) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 rounded-md border border-[color:var(--glass-border)] bg-[#0b1220] px-2 py-1 text-left text-xs text-[color:var(--text)] outline-none focus:border-[color:var(--cyan)]"
+        className="flex w-full items-center justify-between gap-2 rounded-[6px] border border-line-control bg-surface-2 px-2 py-1 text-left text-xs text-text-strong focus:outline-none focus:ring-1 focus:ring-accent"
         title={selected.join(", ") || undefined}
       >
         <span className="truncate">{summary}</span>
-        <IconChevronDown size={12} stroke={2} className="flex-shrink-0 text-[color:var(--muted)]" />
+        <IconChevronDown size={12} stroke={2} className="flex-shrink-0 text-text-muted" />
       </button>
       {open && (
         <div
           role="listbox"
-          className="thin-scroll absolute left-0 top-full z-50 mt-1 max-h-64 min-w-full overflow-y-auto rounded-md border border-[color:var(--glass-border)] bg-[#0b1220] py-1 shadow-2xl"
+          className="thin-scroll absolute left-0 top-full z-50 mt-1 max-h-64 min-w-full overflow-y-auto rounded-[6px] border border-line-strong bg-surface-2 py-1 shadow-2xl"
         >
           <button
             type="button"
             onClick={clear}
-            className="block w-full px-2 py-1 text-left text-xs text-[color:var(--muted)] hover:bg-white/[0.06]"
+            className="block w-full px-2 py-1 text-left text-xs text-text-muted hover:bg-surface-3"
           >
             {placeholder}
           </button>
@@ -103,8 +103,8 @@ export function QueueTreeSelect(props: QueueTreeSelectProps) {
                 role="option"
                 aria-selected={checked}
                 onClick={() => toggle(q.name)}
-                className={`flex w-full items-center gap-1.5 whitespace-nowrap py-1 pr-2 text-left text-xs hover:bg-white/[0.06] ${
-                  checked ? "text-[color:var(--cyan)]" : "text-[color:var(--text)]"
+                className={`flex w-full items-center gap-1.5 whitespace-nowrap py-1 pr-2 text-left text-xs hover:bg-surface-3 ${
+                  checked ? "text-accent-text" : "text-text"
                 }`}
                 style={{ paddingLeft: 8 + q.depth * 12 }}
               >

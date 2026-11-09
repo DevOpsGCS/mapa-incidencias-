@@ -5,11 +5,13 @@ interface SidePanelProps {
   open: boolean;
   onClose: () => void;
   width?: number;
+  /** Etiqueta accesible del panel. */
+  label?: string;
   children: ReactNode;
 }
 
 /** Panel fijo a la derecha; se cierra con Esc o con la ×. */
-export function SidePanel({ open, onClose, width = 440, children }: SidePanelProps) {
+export function SidePanel({ open, onClose, width = 440, label = "Detalle del ticket", children }: SidePanelProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
@@ -24,7 +26,7 @@ export function SidePanel({ open, onClose, width = 440, children }: SidePanelPro
     <aside
       className="fixed bottom-0 right-0 top-0 z-40 flex max-w-full flex-col border-l border-line-strong bg-surface-1"
       style={{ width, boxShadow: "-20px 0 40px rgba(0,0,0,.5)" }}
-      aria-label="Detalle del ticket"
+      aria-label={label}
     >
       <div className="flex justify-end p-2">
         <button

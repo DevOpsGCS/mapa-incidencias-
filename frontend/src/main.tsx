@@ -5,7 +5,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AdminHomePage } from "./admin/AdminHomePage";
 import { AdminLayout } from "./admin/AdminLayout";
 import { AdminSitesSection } from "./admin/AdminSitesSection";
-import { AdminUsersSection } from "./admin/AdminUsersSection";
+import { UsersPage } from "./admin/UsersPage";
 import { AuthGate } from "./auth/AuthGate";
 import { AuthProvider } from "./auth/AuthContext";
 import { RequireRole } from "./auth/RequireRole";
@@ -58,7 +58,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
                     path="/admin/users"
                     element={
                       <AdminPage title="Usuarios">
-                        <AdminUsersSection />
+                        <UsersPage />
                       </AdminPage>
                     }
                   />
