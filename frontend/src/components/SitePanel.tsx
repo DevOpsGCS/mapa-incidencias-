@@ -5,7 +5,7 @@ import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank
 import { SITE_TYPE_LABELS } from "../lib/labels";
 import { priorityTextColor, priorityTint, SELECTION_STYLE_INSET } from "../lib/priorityTint";
 import { computeSlaPercentage } from "../lib/sla";
-import { formatAge, pickSelected, queueLabel } from "../lib/sitePanel";
+import { formatAge, panelHeights, pickSelected, queueLabel } from "../lib/sitePanel";
 import { isOpenStateType, stateTypeColor } from "../lib/znunyColors";
 import { Catalog, Site, StateType, Ticket } from "../types";
 
@@ -19,18 +19,10 @@ interface SitePanelProps {
 const STATE_TYPE_ORDER: Record<StateType, number> = { new: 0, open: 1, pending: 2, closed: 3 };
 
 // Alturas en px (nunca "auto"/vh puro): animar la altura solo funciona suave
-// entre dos números concretos, así que se calculan acá y se aplican inline.
-const TOPBAR_OFFSET = 78;
-const PANEL_BOTTOM_OFFSET = 20;
+// entre dos números concretos, así que se calculan en lib/sitePanel y se aplican inline.
 const MIN_DRAG_HEIGHT = 120; // piso visual mientras se arrastra hacia abajo
 const CLOSE_HEIGHT_THRESHOLD = 160; // al soltar por debajo de esto, cierra
 const EXPAND_MARGIN = 40; // al soltar 40 px por encima de la altura inicial, queda expandida
-const INITIAL_VH = 0.38;
-// D2: la altura inicial se limita para no tapar la última tarjeta de KPIs (Tendencia). El borde
-// inferior del dock se mide en vivo (`data-kpi-dock`); KPI_STACK_BOTTOM es solo el respaldo.
-const KPI_STACK_BOTTOM = 520;
-const KPI_CLEARANCE = 12;
-const MIN_COMPACT_HEIGHT = 200;
 
 /** Factor de zoom de `.hud-scale` (TV); las alturas inline del panel se multiplican por él. */
 function hudZoom(): number {
@@ -38,16 +30,13 @@ function hudZoom(): number {
   return Number.isFinite(z) && z > 0 ? z : 1;
 }
 
-/** Altura inicial en px locales del panel (ya divididos por el zoom): min(38vh, espacio bajo los KPIs). */
-function initialHeight(): number {
-  if (typeof window === "undefined") return 300;
+/** Mide el viewport y el dock de KPIs (una sola vez por apertura/resize, no por render). */
+function measureHeights(): { compact: number; expanded: number; zoom: number } {
+  if (typeof window === "undefined") return { compact: 300, expanded: 300, zoom: 1 };
   const zoom = hudZoom();
-  const viewport = window.innerHeight / zoom;
   const dock = document.querySelector("[data-kpi-dock]");
-  const kpiBottom = dock ? dock.getBoundingClientRect().bottom / zoom : KPI_STACK_BOTTOM;
-  const byRatio = Math.round(viewport * INITIAL_VH);
-  const belowKpis = Math.floor(viewport - kpiBottom - PANEL_BOTTOM_OFFSET - KPI_CLEARANCE);
-  return Math.max(MIN_COMPACT_HEIGHT, Math.min(byRatio, belowKpis));
+  const kpiBottomPx = dock ? dock.getBoundingClientRect().bottom : null;
+  return { ...panelHeights({ innerHeight: window.innerHeight, zoom, kpiBottomPx }), zoom };
 }
 
 export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
@@ -57,14 +46,19 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
-  // Recalcula al redimensionar la ventana (y por tanto el zoom de la TV).
-  const [, setResizeTick] = useState(0);
+  // Se mide al abrir (cambio de sitio) y al redimensionar la ventana (y por tanto el zoom de la TV),
+  // nunca en cada render: durante el arrastre getBoundingClientRect forzaría reflows.
+  const [measured, setMeasured] = useState(measureHeights);
+  const siteId = site?.id;
   useEffect(() => {
-    const onResize = () => setResizeTick((n) => n + 1);
+    setMeasured(measureHeights());
+  }, [siteId]);
+  useEffect(() => {
+    const onResize = () => setMeasured(measureHeights());
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  const compactHeight = initialHeight();
+  const compactHeight = measured.compact;
   const dragStartHeight = useRef(compactHeight);
 
   useEffect(() => {
@@ -107,8 +101,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
 
   const now = new Date();
 
-  const expandedHeight =
-    typeof window !== "undefined" ? window.innerHeight - TOPBAR_OFFSET - PANEL_BOTTOM_OFFSET : compactHeight;
+  const expandedHeight = measured.expanded;
   const restingHeight = expanded ? expandedHeight : compactHeight;
   const liveHeight = dragging
     ? Math.min(Math.max(dragStartHeight.current - dragY, MIN_DRAG_HEIGHT), expandedHeight)
@@ -125,7 +118,8 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (dragStartY.current === null) return;
-    setDragY(event.clientY - dragStartY.current);
+    // El delta es en px de pantalla; las alturas son locales (multiplicadas por el zoom).
+    setDragY((event.clientY - dragStartY.current) / measured.zoom);
   };
 
   const endDrag = () => {

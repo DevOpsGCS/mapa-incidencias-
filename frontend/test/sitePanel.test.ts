@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAge, pickSelected, queueLabel } from "../src/lib/sitePanel";
+import { PANEL_BOTTOM_OFFSET, TOPBAR_OFFSET, formatAge, panelHeights, pickSelected, queueLabel } from "../src/lib/sitePanel";
 import { Ticket } from "../src/types";
 
 const NOW = new Date("2026-11-09T12:00:00Z");
@@ -47,5 +47,29 @@ describe("pickSelected prefiere abiertos", () => {
   });
   it("la selección visible gana aunque esté cerrada", () => {
     expect(pickSelected([open(1), closed(2)], 2)?.id).toBe(2);
+  });
+});
+
+describe("panelHeights", () => {
+  it.each([
+    [1440, 0.75],
+    [1080, 1],
+    [1440, 1.333],
+  ])("expandida entra en pantalla (innerHeight %i, zoom %f)", (innerHeight, zoom) => {
+    const { compact, expanded } = panelHeights({ innerHeight, zoom, kpiBottomPx: null });
+    // En pantalla = local * zoom; debe caber bajo la barra superior y sobre el borde inferior.
+    expect(expanded * zoom).toBeCloseTo(innerHeight - (TOPBAR_OFFSET + PANEL_BOTTOM_OFFSET) * zoom, 5);
+    expect(expanded * zoom + (TOPBAR_OFFSET + PANEL_BOTTOM_OFFSET) * zoom).toBeLessThanOrEqual(innerHeight + 1e-6);
+    expect(compact).toBeLessThanOrEqual(Math.max(200, expanded));
+  });
+  it("zoom 1 sin dock: valores conocidos", () => {
+    const r = panelHeights({ innerHeight: 1000, zoom: 1, kpiBottomPx: null });
+    expect(r.expanded).toBe(1000 - 78 - 20);
+    expect(r.compact).toBe(Math.max(200, Math.min(380, Math.floor(1000 - 520 - 20 - 12))));
+  });
+  it("el borde del dock en px de pantalla se convierte a locales", () => {
+    const r = panelHeights({ innerHeight: 1440, zoom: 1.333, kpiBottomPx: 800 });
+    const viewport = 1440 / 1.333;
+    expect(r.compact).toBe(Math.max(200, Math.min(Math.round(viewport * 0.38), Math.floor(viewport - 800 / 1.333 - 20 - 12))));
   });
 });
