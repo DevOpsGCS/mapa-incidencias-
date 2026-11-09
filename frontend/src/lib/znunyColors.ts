@@ -13,7 +13,8 @@ export function stateTypeColor(t: StateType): string {
 
 /** rank 0 = la prioridad más alta. */
 export function priorityColor(rank: number): string {
-  if (!Number.isFinite(rank) || rank <= 0) return PRIORITY_HEX[0];
+  if (Number.isNaN(rank)) return PRIORITY_HEX[3];
+  if (rank <= 0) return PRIORITY_HEX[0];
   return PRIORITY_HEX[Math.min(Math.floor(rank), 3)];
 }
 

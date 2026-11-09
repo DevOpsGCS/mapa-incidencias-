@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { priorityColor } from "../src/lib/znunyColors";
 import { priorityTextColor, priorityTint, SELECTION_STYLE } from "../src/lib/priorityTint";
 
 describe("priorityTint", () => {
@@ -22,5 +23,12 @@ describe("priorityTint", () => {
   });
   it("selección", () => {
     expect(SELECTION_STYLE).toEqual({ background: "var(--surface-3)", boxShadow: "0 0 0 1px rgba(0,122,252,.6)" });
+  });
+  it("rank NaN o infinito se trata como rank 3 (desconocido)", () => {
+    expect(priorityTint(NaN, "row")).toBe(priorityTint(3, "row"));
+    expect(priorityTint(Infinity, "card")).toBe(priorityTint(3, "card"));
+    expect(priorityTextColor(NaN)).toBe("#5ee0b0");
+    expect(priorityColor(NaN)).toBe("#34d399");
+    expect(priorityColor(-1)).toBe("#ff4d6d");
   });
 });

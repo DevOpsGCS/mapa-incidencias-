@@ -4,8 +4,9 @@ import { PRIORITY_RGB, PRIORITY_TEXT_HEX } from "./dataColors";
 const ROW_ALPHA = [0.12, 0.1, 0.09, 0.08];
 
 function clampRank(rank: number): number {
-  if (!Number.isFinite(rank) || rank < 0) return 0;
-  return Math.min(Math.floor(rank), 3);
+  if (Number.isNaN(rank)) return 3;
+  if (rank < 0) return 0;
+  return Math.min(Math.floor(rank), 3); // Infinity => 3
 }
 
 /** `background-image` CSS del tinte de prioridad (nunca una barra lateral). */
