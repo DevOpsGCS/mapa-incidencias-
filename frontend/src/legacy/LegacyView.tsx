@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { credentialedRequest, fetchLegacyMeta, fetchLegacyTickets } from "../api/client";
-import { LegacyMetricsView } from "./LegacyMetricsView";
-import { computeLegacyStats } from "./legacyStats";
+import osTicketLogo from "../img/osticketlogo.png";
+import { LegacyTicketsTable } from "./LegacyTicketsTable";
 import { LegacyMeta, LegacySite, LegacyTicket } from "./types";
 
 function formatFrozenDate(iso: string): string {
@@ -41,29 +41,40 @@ export function LegacyView() {
     };
   }, []);
 
-  const stats = useMemo(() => (tickets ? computeLegacyStats(tickets, sites) : null), [tickets, sites]);
-
   if (error) {
-    return <div className="flex h-full items-center justify-center text-sm text-[color:var(--red)]">{error}</div>;
+    return (
+      <div className="flex h-full items-center justify-center text-sm" style={{ color: "var(--data-p0-text)" }}>
+        {error}
+      </div>
+    );
   }
-  if (!tickets || !stats || !meta) {
+  if (!tickets || !meta) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="mono-label text-[color:var(--muted)]">Cargando histórico...</p>
+        <p className="text-sm text-text-muted">Cargando histórico...</p>
       </div>
     );
   }
 
-  const isSnapshot = meta.source === "snapshot";
-  const notice = isSnapshot && meta.frozenAt ? `Datos congelados al ${formatFrozenDate(meta.frozenAt)}` : null;
+  const notice = meta.source === "snapshot" && meta.frozenAt ? `Datos congelados al ${formatFrozenDate(meta.frozenAt)}` : null;
 
   return (
-    <LegacyMetricsView
-      tickets={tickets}
-      sites={sites}
-      stats={stats}
-      showOsTicketLink={meta.source === "live"}
-      notice={notice}
-    />
+    <div className="thin-scroll h-full overflow-y-auto px-5 pb-6 pt-[92px]">
+      <div className="mx-auto flex max-w-screen-2xl flex-col gap-4">
+        <header className="flex flex-wrap items-center gap-3">
+          <img src={osTicketLogo} alt="osTicket" className="h-7 w-7 rounded-[6px] object-cover" />
+          <h1 className="text-[22px] font-bold leading-tight text-text-strong">Histórico osTicket</h1>
+          {notice && (
+            <span
+              className="inline-flex items-center rounded-[4px] px-2 py-0.5 text-xs font-medium"
+              style={{ background: "rgba(245,166,35,.14)", color: "var(--data-p1-text)" }}
+            >
+              {notice}
+            </span>
+          )}
+        </header>
+        <LegacyTicketsTable tickets={tickets} sites={sites} showOsTicketLink={meta.source === "live"} />
+      </div>
+    </div>
   );
 }

@@ -22,7 +22,7 @@ export function computeSlaPercentage(ticket: Pick<LegacyTicket, "status" | "crea
 
 /** 1-50% verde, 51-75% amarillo, 76-100% rojo (a punto de vencer) — mismos umbrales para el anillo (SlaRing) y la barra (SlaBar). */
 export function colorForSlaPercentage(pct: number): string {
-  if (pct <= 50) return "var(--green)";
-  if (pct <= 75) return "var(--amber)";
-  return "var(--red)";
+  if (pct <= 50) return "var(--data-p3)";
+  if (pct <= 75) return "var(--data-p1)";
+  return "var(--data-p0)";
 }

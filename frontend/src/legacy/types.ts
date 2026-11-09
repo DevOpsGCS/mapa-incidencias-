@@ -32,30 +32,6 @@ export interface LegacySite {
   lng: number;
 }
 
-export interface LegacySiteStat {
-  siteId: string;
-  siteName: string;
-  total: number;
-  open: number;
-  urgenteOpen: number;
-}
-
-export interface LegacyTrendPoint {
-  date: string;
-  count: number;
-}
-
-export interface LegacyStats {
-  total: number;
-  byStatus: Record<LegacyTicketStatus, number>;
-  byPriority: Record<LegacyTicketPriority, number>;
-  bySite: LegacySiteStat[];
-  totalOpen: number;
-  totalUrgente: number;
-  resolvedToday: number;
-  trend: LegacyTrendPoint[];
-}
-
 export interface LegacyMeta {
   source: "live" | "snapshot";
   frozenAt: string | null;

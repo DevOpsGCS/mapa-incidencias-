@@ -1,6 +1,14 @@
 import { FormEvent, useState } from "react";
 import { PasswordInput } from "../components/PasswordInput";
 import { useAuth } from "./AuthContext";
+import {
+  AUTH_ERROR_CLASS,
+  AUTH_ERROR_STYLE,
+  AUTH_INPUT_CLASS,
+  AUTH_LABEL_CLASS,
+  AUTH_PASSWORD_INPUT_CLASS,
+  AUTH_PRIMARY_BUTTON_CLASS,
+} from "./AuthBackground";
 
 interface LoginFormProps {
   autoFocus?: boolean;
@@ -29,7 +37,7 @@ export function LoginForm({ autoFocus = true }: LoginFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <label className="block text-sm text-[color:var(--muted)]">
+      <label className={AUTH_LABEL_CLASS}>
         Usuario
         <input
           type="text"
@@ -37,26 +45,30 @@ export function LoginForm({ autoFocus = true }: LoginFormProps) {
           onChange={(e) => setUsername(e.target.value)}
           autoFocus={autoFocus}
           required
-          className="mt-1 w-full rounded-md border border-[color:var(--glass-border)] bg-black/20 px-3 py-2 text-[color:var(--text)] outline-none focus:border-[color:var(--cyan)]"
+          className={AUTH_INPUT_CLASS}
         />
       </label>
 
-      <label className="block text-sm text-[color:var(--muted)]">
+      <label className={AUTH_LABEL_CLASS}>
         Contraseña
         <PasswordInput
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="rounded-md border border-[color:var(--glass-border)] bg-black/20 px-3 py-2 text-[color:var(--text)] outline-none focus:border-[color:var(--cyan)]"
+          className={AUTH_PASSWORD_INPUT_CLASS}
         />
       </label>
 
-      {error && <p className="text-sm text-[#FF718A]">{error}</p>}
+      {error && (
+        <p className={AUTH_ERROR_CLASS} style={AUTH_ERROR_STYLE}>
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-md bg-[#1A294C] px-3 py-2 text-sm font-medium text-[#7099FF] transition-colors hover:bg-[#223868] disabled:opacity-50"
+        className={AUTH_PRIMARY_BUTTON_CLASS}
       >
         {submitting ? "Ingresando..." : "Ingresar"}
       </button>

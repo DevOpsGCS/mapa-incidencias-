@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { requestPasswordReset } from "../api/authClient";
+import { AUTH_INPUT_CLASS, AUTH_LABEL_CLASS, AUTH_LINK_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from "./AuthBackground";
 
 interface ForgotPasswordFormProps {
   onBack: () => void;
@@ -33,11 +34,11 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
   if (sent) {
     return (
       <div className="space-y-4 text-center">
-        <p className="text-sm text-[color:var(--text)]">{GENERIC_CONFIRMATION}</p>
+        <p className="text-sm text-text">{GENERIC_CONFIRMATION}</p>
         <button
           type="button"
           onClick={onBack}
-          className="text-xs text-[color:var(--muted)] hover:text-[color:var(--text)]"
+          className={AUTH_LINK_CLASS}
         >
           Volver a iniciar sesión
         </button>
@@ -47,7 +48,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <label className="block text-sm text-[color:var(--muted)]">
+      <label className={AUTH_LABEL_CLASS}>
         Correo electrónico
         <input
           type="email"
@@ -55,14 +56,14 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           onChange={(e) => setEmail(e.target.value)}
           autoFocus
           required
-          className="mt-1 w-full rounded-md border border-[color:var(--glass-border)] bg-black/20 px-3 py-2 text-[color:var(--text)] outline-none focus:border-[color:var(--cyan)]"
+          className={AUTH_INPUT_CLASS}
         />
       </label>
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-md bg-[#1A294C] px-3 py-2 text-sm font-medium text-[#7099FF] transition-colors hover:bg-[#223868] disabled:opacity-50"
+        className={AUTH_PRIMARY_BUTTON_CLASS}
       >
         {submitting ? "Enviando..." : "Enviar instrucciones"}
       </button>
@@ -70,7 +71,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
       <button
         type="button"
         onClick={onBack}
-        className="block w-full text-center text-xs text-[color:var(--muted)] hover:text-[color:var(--text)]"
+        className={AUTH_LINK_CLASS}
       >
         Volver a iniciar sesión
       </button>

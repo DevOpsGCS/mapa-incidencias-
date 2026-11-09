@@ -2,8 +2,14 @@ import { FormEvent, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { resetPassword } from "../api/authClient";
 import { PasswordInput } from "../components/PasswordInput";
-import logo from "../img/logo_gcs_blanco.png";
-import { AuthBackground } from "./AuthBackground";
+import {
+  AUTH_ERROR_CLASS,
+  AUTH_ERROR_STYLE,
+  AUTH_LABEL_CLASS,
+  AUTH_PASSWORD_INPUT_CLASS,
+  AUTH_PRIMARY_BUTTON_CLASS,
+  AuthBackground,
+} from "./AuthBackground";
 
 /** Ruta pública /reset-password?token=... — no requiere sesión, es a donde lleva el enlace del correo de "¿Olvidaste tu contraseña?". */
 export function ResetPasswordPage() {
@@ -41,26 +47,14 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <AuthBackground>
-      <div className="flex flex-col items-center gap-3 text-center">
-        <img src={logo} alt="Global Customs Solutions" className="h-10 w-auto" />
-        <div>
-          <h1 className="font-display text-lg font-semibold text-[color:var(--text)]">
-            Restablecer contraseña
-          </h1>
-          <p className="mono-label mt-1 text-[10px] text-[color:var(--muted)]">
-            Global Customs Solutions · Sitios El Salvador
-          </p>
-        </div>
-      </div>
-
+    <AuthBackground heading="Restablecer contraseña">
       {!token ? (
-        <p className="text-center text-sm text-[#FF718A]">
+        <p className="text-center text-sm" style={AUTH_ERROR_STYLE}>
           Este enlace no es válido. Pedí uno nuevo desde la pantalla de inicio de sesión.
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block text-sm text-[color:var(--muted)]">
+          <label className={AUTH_LABEL_CLASS}>
             Contraseña nueva
             <PasswordInput
               value={password}
@@ -68,27 +62,31 @@ export function ResetPasswordPage() {
               autoFocus
               required
               minLength={8}
-              className="rounded-md border border-[color:var(--glass-border)] bg-black/20 px-3 py-2 text-[color:var(--text)] outline-none focus:border-[color:var(--cyan)]"
+              className={AUTH_PASSWORD_INPUT_CLASS}
             />
           </label>
 
-          <label className="block text-sm text-[color:var(--muted)]">
+          <label className={AUTH_LABEL_CLASS}>
             Repetir contraseña nueva
             <PasswordInput
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
-              className="rounded-md border border-[color:var(--glass-border)] bg-black/20 px-3 py-2 text-[color:var(--text)] outline-none focus:border-[color:var(--cyan)]"
+              className={AUTH_PASSWORD_INPUT_CLASS}
             />
           </label>
 
-          {error && <p className="text-sm text-[#FF718A]">{error}</p>}
+          {error && (
+        <p className={AUTH_ERROR_CLASS} style={AUTH_ERROR_STYLE}>
+          {error}
+        </p>
+      )}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-[#1A294C] px-3 py-2 text-sm font-medium text-[#7099FF] transition-colors hover:bg-[#223868] disabled:opacity-50"
+            className={AUTH_PRIMARY_BUTTON_CLASS}
           >
             {submitting ? "Guardando..." : "Restablecer contraseña"}
           </button>
