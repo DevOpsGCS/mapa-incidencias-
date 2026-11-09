@@ -70,7 +70,7 @@ function SiteFlyout({ form, onChange, onClose, onSubmit, error, saving }: SiteFl
         <div className="px-5 pb-3">
           <h2 className="text-lg font-medium text-text-strong">{form.label}</h2>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto border-t border-line-strong px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-4 thin-scroll overflow-y-auto border-t border-line-strong px-5 py-4">
           <label className={LABEL_CLASS}>
             Tipo
             <select
@@ -390,7 +390,7 @@ export function SitesPage() {
         </div>
       )}
 
-      <div role="table" aria-label="Sitios" className="mt-2">
+      <div role="table" aria-label="Sitios" className="glass mt-2 overflow-hidden rounded-card">
         <div
           role="row"
           className={`${grid} px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-text-label`}

@@ -81,7 +81,7 @@ export function LegacyTicketsTable({ tickets, sites, showOsTicketLink = true }: 
   const visible = filtered.slice(0, visibleCount);
 
   return (
-    <div className="rounded-card border border-line bg-surface-1">
+    <div className="rounded-card border border-line glass">
       <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
         <h3 className="mr-2 text-sm font-bold text-text-strong">Tickets</h3>
 
@@ -220,7 +220,7 @@ export function LegacyTicketsTable({ tickets, sites, showOsTicketLink = true }: 
                 <td className="px-3 py-2 font-mono text-xs text-text-muted">
                   {ticket.id}
                 </td>
-                <td className="max-w-xs truncate px-3 py-2 text-text-strong">
+                <td className="max-w-[200px] truncate px-3 py-2 text-text-strong">
                   {showOsTicketLink && ticket.osTicketUrl ? (
                     <a
                       href={ticket.osTicketUrl}

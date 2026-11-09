@@ -77,7 +77,7 @@ export default function App() {
       )}
 
       {view === "legacy" ? (
-        <div className="h-full">
+        <div className="app-backdrop h-full">
           <LegacyView />
         </div>
       ) : loading || !stats || !catalog ? (

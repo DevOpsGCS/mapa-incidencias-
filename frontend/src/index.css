@@ -34,10 +34,19 @@
   --state-pending: #f5a623;
   --state-closed: #64748b;
 
+  /* Vidrio + glow (spec §2.6). El vidrio se aplica con la clase .glass. */
+  --glass-bg: rgba(21, 23, 27, 0.72);
+  --glass-blur: blur(12px) saturate(120%);
+  --glass-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --glow-select: 0 0 0 1px rgba(0, 122, 252, 0.6), 0 0 16px rgba(0, 122, 252, 0.25);
+  --glow-critical: 0 0 18px rgba(255, 77, 109, 0.25);
+
+  color-scheme: dark;
+
   /* Alias viejos: apuntan a los nuevos hasta que las tareas siguientes migren. */
   --map-bg: var(--bg);
   --map-line: var(--line);
-  --glass: var(--surface-1);
   --glass-border: transparent;
   --muted: var(--text-muted);
   --muted-2: var(--text-label);
@@ -74,12 +83,67 @@ body {
   font-family: "DM Sans", system-ui, sans-serif;
 }
 
-/* Panel "glass": base visual reutilizada por tarjetas KPI, rail de sitios,
-   drawer de detalle y las cards de la vista de métricas. */
+/* Vidrio translúcido: paneles flotantes y tarjetas (no la página de fondo).
+   Con backdrop-filter se ve el mapa/fondo difuminado detrás; sin soporte cae a sólido. */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--surface-1);
+  }
+}
+
+/* Alias de .glass con radio 20. */
 .glass-panel {
-  background: var(--surface-1);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
   border: none;
   border-radius: 20px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel {
+    background: var(--surface-1);
+  }
+}
+
+/* Fondo de las páginas sin mapa (Métricas, Administración, Histórico): degradado
+   sutil para que el vidrio se note. */
+.app-backdrop {
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(0, 122, 252, 0.1), transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgba(62, 214, 196, 0.06), transparent 60%),
+    var(--bg);
+}
+
+/* Filas del panel del sitio (D1): el título nunca baja de 220 px; por debajo de
+   1600 px de ventana se oculta Propietario y se achican cola y estado. */
+.site-row {
+  grid-template-columns: minmax(220px, 1fr) 110px 110px 36px;
+}
+.site-row-owner {
+  display: none;
+}
+@media (min-width: 1600px) {
+  .site-row {
+    grid-template-columns: minmax(220px, 1fr) 150px 110px 120px 40px;
+  }
+  .site-row-owner {
+    display: block;
+  }
+}
+
+/* Casillas y radios nativos con el acento. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent-fill);
 }
 
 .mono-label {
@@ -210,6 +274,6 @@ body {
   width: 6px;
 }
 .thin-scroll::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
+  background: var(--line-strong);
   border-radius: 999px;
 }

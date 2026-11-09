@@ -274,7 +274,7 @@ export function UsersPage() {
         </div>
       )}
 
-      <div role="table" aria-label="Usuarios" className="mt-2">
+      <div role="table" aria-label="Usuarios" className="glass mt-2 overflow-hidden rounded-card">
         <div
           role="row"
           className={`${GRID} px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-text-label`}

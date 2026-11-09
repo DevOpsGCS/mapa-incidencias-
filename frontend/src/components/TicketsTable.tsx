@@ -291,7 +291,7 @@ export function TicketsTable({
       : null;
 
   return (
-    <div className="rounded-card border border-line bg-surface-1">
+    <div className="rounded-card border border-line glass">
       <div className="flex items-baseline gap-2 px-4 pt-3">
         <h3 className="text-sm font-bold text-text-strong">Tickets</h3>
         <span className="text-xs text-text-muted">

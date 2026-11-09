@@ -103,7 +103,7 @@ export function AuthBackground({ children, heading }: AuthBackgroundProps) {
         className="pointer-events-none absolute inset-0"
         style={{ boxShadow: "inset 0 0 160px 60px var(--bg)" }}
       />
-      <div className="relative z-10 w-full max-w-[400px] space-y-6 rounded-[24px] bg-surface-1 p-8">
+      <div className="relative z-10 w-full max-w-[400px] space-y-6 rounded-[24px] glass p-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <img src={logo} alt="Global Customs Solutions" className="h-10 w-auto" />
           <div>

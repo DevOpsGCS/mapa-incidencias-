@@ -74,7 +74,7 @@ function DepartmentsCheckboxGroup({
   }
 
   return (
-    <div className="mt-1 max-h-64 space-y-1.5 overflow-y-auto rounded-[6px] border border-line-strong bg-surface-2 p-2.5">
+    <div className="mt-1 max-h-64 space-y-1.5 thin-scroll overflow-y-auto rounded-[6px] border border-line-strong bg-surface-2 p-2.5">
       {departments.map((name) => (
         <label key={name} className="flex items-center gap-2 text-sm text-text">
           <input type="checkbox" checked={selected.includes(name)} onChange={() => toggle(name)} className="h-3.5 w-3.5" />
@@ -248,7 +248,7 @@ export function UserFlyout({
         </div>
 
         {tab === "password" && user ? (
-          <form onSubmit={handlePassword} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <form onSubmit={handlePassword} className="min-h-0 flex-1 space-y-4 thin-scroll overflow-y-auto px-5 py-4">
             <label className={LABEL_CLASS}>
               Contraseña nueva
               <PasswordInput
@@ -271,7 +271,7 @@ export function UserFlyout({
           </form>
         ) : (
           <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            <div className="min-h-0 flex-1 space-y-4 thin-scroll overflow-y-auto px-5 py-4">
               {tab === "account" && (
                 <>
                   <label className={LABEL_CLASS}>

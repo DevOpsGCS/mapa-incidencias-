@@ -39,7 +39,7 @@ export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = fals
 
   return (
     <div className="hud-scale fixed left-5 top-[78px] z-10 flex w-[190px] flex-col gap-2">
-      <div className="relative z-20 rounded-panel bg-surface-1 px-3.5 py-3">
+      <div className="relative z-20 rounded-panel glass px-3.5 py-3">
         <div className="flex items-center justify-between">
           <p className="mono-label text-[11px] tracking-[0.12em] text-text-label">Cola</p>
           {/* Mismo texto/estilo que el "Cargando dashboard..." de App.tsx durante la carga inicial. */}
@@ -52,10 +52,17 @@ export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = fals
       {items.map((item) => (
         <div
           key={item.label}
-          className={`rounded-panel bg-surface-1 px-3.5 py-3 transition-opacity duration-200 ${
+          className={`rounded-panel glass px-3.5 py-3 transition-opacity duration-200 ${
             isPending ? "opacity-50" : "opacity-100"
           }`}
-          style={item.alarm ? { backgroundImage: priorityTint(0, "card") } : undefined}
+          style={
+            item.alarm
+              ? {
+                  backgroundImage: priorityTint(0, "card"),
+                  boxShadow: "var(--glass-edge), var(--glass-shadow), var(--glow-critical)",
+                }
+              : undefined
+          }
         >
           <p className="mono-label text-[11px] tracking-[0.12em] text-text-label">{item.label}</p>
           <p

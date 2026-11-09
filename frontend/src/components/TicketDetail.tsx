@@ -35,7 +35,7 @@ export function TicketDetail({ ticket, catalog, emptyText = "Sin tickets con est
   ];
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-4">
+    <div className="thin-scroll flex h-full flex-col gap-3 overflow-y-auto p-4">
       <div>
         <p className="mono-label mb-1 text-[11px] text-text-label" style={{ letterSpacing: "0.12em" }}>
           {ticket.tn}

@@ -84,7 +84,7 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
   const stateTag = (name: string, color: string) => (
     <span
       className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-      style={{ color, background: "var(--surface-1)", border: `1px solid ${color}` }}
+      style={{ color, background: "var(--glass-bg)", border: `1px solid ${color}` }}
     >
       {name}
     </span>
@@ -100,9 +100,11 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
         visible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
       }`}
       style={{
-        background: `${priorityTint(priorityRank, "card")}, var(--surface-3)`,
+        background: `${priorityTint(priorityRank, "card")}, var(--glass-bg)`,
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
         borderRadius: 16,
-        boxShadow: "0 8px 30px rgba(0,0,0,.45)",
+        boxShadow: "var(--glass-edge), var(--glass-shadow)",
       }}
     >
       <div className="flex items-start gap-2">

@@ -120,8 +120,8 @@ export function AdminLayout({ title, crumbs, children }: AdminLayoutProps) {
   }, [title]);
 
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <header className="fixed inset-x-0 top-0 z-20 flex h-11 items-center gap-4 border-b border-line bg-surface-1 px-4">
+    <div className="app-backdrop min-h-screen text-text">
+      <header className="fixed inset-x-0 top-0 z-20 flex h-11 items-center gap-4 border-b border-line glass px-4">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Global Customs Solutions" className="h-6 w-auto" />
           <span className="text-sm text-text-strong">Administración · Mapa de Incidencias</span>
@@ -148,7 +148,7 @@ export function AdminLayout({ title, crumbs, children }: AdminLayoutProps) {
 
       <nav
         aria-label="Navegación de administración"
-        className="fixed bottom-0 left-0 top-11 z-10 w-[210px] overflow-y-auto border-r border-line bg-surface-1 px-2 py-3"
+        className="fixed bottom-0 left-0 top-11 z-10 w-[210px] thin-scroll overflow-y-auto border-r border-line glass px-2 py-3"
       >
         {ADMIN_NAV.map((group, gi) => (
           <div key={group.group ?? `g${gi}`} className={gi > 0 ? "mt-4" : ""}>

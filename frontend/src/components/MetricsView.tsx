@@ -86,7 +86,7 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
   };
 
   return (
-    <div className="thin-scroll h-full overflow-y-auto px-5 pb-6 pt-[92px]">
+    <div className="thin-scroll app-backdrop h-full overflow-y-auto px-5 pb-6 pt-[92px]">
       <div className="mx-auto flex max-w-screen-2xl flex-col gap-4">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -134,19 +134,20 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
             value={stats.topPriorityOpen}
             hint="prioridad máxima"
             tint={stats.topPriorityOpen > 0 ? priorityTint(0, "card") : undefined}
+            critical={stats.topPriorityOpen > 0}
           />
           <ReportCard title="Cerrados hoy" value={stats.closedToday} hint="día El Salvador" />
           <ReportCard title={`Creados (${range} d)`} value={created} hint={`últimos ${range} días`} />
         </section>
 
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <div className="rounded-card border border-line bg-surface-1 p-4">
+          <div className="rounded-card border border-line glass p-4">
             <PanelHeader title="Tickets por estado" onDetails={() => onShowDetails({})} />
             <div className="mt-2">
               <StatusChart stats={stats} />
             </div>
           </div>
-          <div className="rounded-card border border-line bg-surface-1 p-4">
+          <div className="rounded-card border border-line glass p-4">
             <PanelHeader
               title={`Tickets creados (${range} días)`}
               onDetails={() => onShowDetails({ createdInRangeOnly: true })}

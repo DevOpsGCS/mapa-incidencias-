@@ -13,7 +13,7 @@ const TONE_DOT: Record<StatusTone, string> = {
 
 function StatusCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-card border border-line bg-surface-1 p-4">
+    <div className="rounded-card border border-line glass p-4">
       <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-label">{title}</div>
       <div className="mt-3 space-y-2 text-sm text-text">{children}</div>
     </div>

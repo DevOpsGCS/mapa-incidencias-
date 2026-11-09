@@ -26,11 +26,17 @@ const MIN_DRAG_HEIGHT = 120; // piso visual mientras se arrastra hacia abajo
 const CLOSE_HEIGHT_THRESHOLD = 160; // al soltar por debajo de esto, cierra
 const EXPAND_MARGIN = 40; // al soltar 40 px por encima de la altura inicial, queda expandida
 const INITIAL_VH = 0.38;
-
-const ROW_GRID = "1fr 180px 140px 130px 40px";
+// D2: la pila de KPIs (selector + 4 tarjetas) llega hasta ~510 px desde arriba a 768 px de alto;
+// la altura inicial se limita para que el panel no tape la última tarjeta (Tendencia).
+const KPI_STACK_BOTTOM = 520;
+const KPI_CLEARANCE = 12;
+const MIN_COMPACT_HEIGHT = 200;
 
 function initialHeight(): number {
-  return typeof window !== "undefined" ? Math.round(window.innerHeight * INITIAL_VH) : 300;
+  if (typeof window === "undefined") return 300;
+  const byRatio = Math.round(window.innerHeight * INITIAL_VH);
+  const belowKpis = window.innerHeight - KPI_STACK_BOTTOM - PANEL_BOTTOM_OFFSET - KPI_CLEARANCE;
+  return Math.max(MIN_COMPACT_HEIGHT, Math.min(byRatio, belowKpis));
 }
 
 export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
@@ -127,7 +133,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
 
   return (
     <div
-      className="hud-scale fixed bottom-5 left-5 right-[320px] z-[15] flex flex-col overflow-hidden rounded-panel bg-surface-1 px-5 pb-4 pt-1"
+      className="hud-scale fixed bottom-5 left-5 right-[320px] z-[15] flex flex-col overflow-hidden rounded-panel glass px-5 pb-4 pt-1"
       style={{
         height: `${liveHeight}px`,
         transition: dragging ? "none" : "height 200ms ease-out",
@@ -181,7 +187,10 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3" style={{ gridTemplateColumns: "3fr 2fr" }}>
+      <div
+        className="grid min-h-0 flex-1 gap-3"
+        style={{ gridTemplateColumns: siteTickets.length === 0 ? "1fr" : "3fr 2fr" }}
+      >
         <div className="thin-scroll min-h-0 overflow-y-auto">
           {siteTickets.length === 0 ? (
             <p className="py-6 text-center text-sm text-text-muted">Sin tickets con este filtro</p>
@@ -195,11 +204,10 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => setSelectedId(ticket.id)}
-                  className={`mb-1 grid h-[52px] w-full items-center gap-3 rounded-lg px-3 text-left ${
+                  className={`site-row mb-1 grid h-[52px] w-full items-center gap-3 rounded-lg px-3 text-left ${
                     isSelected ? "" : "hover:bg-surface-2"
                   }`}
                   style={{
-                    gridTemplateColumns: ROW_GRID,
                     ...(isSelected ? SELECTION_STYLE_INSET : { backgroundImage: priorityTint(rank, "row") }),
                   }}
                 >
@@ -211,7 +219,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
                     </span>
                   </span>
                   <span className="truncate text-xs text-text-muted">{queueLabel(ticket.queue)}</span>
-                  <span className="truncate text-xs text-text-muted">{ticket.owner}</span>
+                  <span className="site-row-owner truncate text-xs text-text-muted">{ticket.owner}</span>
                   <span className="flex min-w-0 items-center gap-1.5 text-xs text-text">
                     <span
                       className="h-2 w-2 flex-shrink-0 rounded-full"
@@ -229,9 +237,12 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
           )}
         </div>
 
-        <div className="min-h-0 overflow-hidden rounded-xl bg-surface-2">
-          <TicketDetail ticket={selected} catalog={catalog} />
-        </div>
+        {/* Con la lista vacía el aviso ya está a la izquierda: el detalle no lo repite. */}
+        {siteTickets.length > 0 && (
+          <div className="min-h-0 overflow-hidden rounded-xl glass">
+            <TicketDetail ticket={selected} catalog={catalog} />
+          </div>
+        )}
       </div>
     </div>
   );

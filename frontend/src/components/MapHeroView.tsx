@@ -122,7 +122,7 @@ export function MapHeroView({ sites, tickets, catalog, selectedSite, onSelectSit
 function MapLegend({ catalog }: { catalog: Catalog }) {
   const priorities = [...catalog.priorities].sort((a, b) => a.rank - b.rank);
   return (
-    <div className="hud-scale fixed bottom-5 left-5 z-10 rounded-panel bg-surface-1 px-3.5 py-3 text-xs text-text">
+    <div className="hud-scale fixed bottom-5 left-5 z-10 rounded-panel glass px-3.5 py-3 text-xs text-text">
       {priorities.map((priority) => (
         <LegendRow key={priority.id} color={priorityColor(priority.rank)} label={priority.name} />
       ))}

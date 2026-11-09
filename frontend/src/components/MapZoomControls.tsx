@@ -52,7 +52,7 @@ export function MapZoomControls({ homeBounds }: MapZoomControlsProps) {
   return (
     <div
       ref={containerRef}
-      className="hud-scale absolute right-[312px] top-[78px] z-[1000] flex flex-col overflow-hidden rounded-panel bg-surface-1"
+      className="hud-scale absolute right-[312px] top-[78px] z-[1000] flex flex-col overflow-hidden rounded-panel glass"
     >
       <button type="button" aria-label="Acercar" className={BUTTON_CLASS} onClick={() => map.zoomIn()}>
         <Plus size={22} />

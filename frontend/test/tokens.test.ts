@@ -73,3 +73,14 @@ describe("tokens de color", () => {
     expect(Object.keys(UI_HEX).sort()).toEqual(Object.keys(map).sort());
   });
 });
+
+describe("tokens de vidrio y glow", () => {
+  it.each(["--glass-bg", "--glass-blur", "--glass-edge", "--glass-shadow", "--glow-select", "--glow-critical"])("define %s", (n) => {
+    expect(vars[n]).toBeTruthy();
+  });
+  it("define .glass, .app-backdrop y el fallback sólido", () => {
+    expect(css).toMatch(/\.glass\s*\{/);
+    expect(css).toMatch(/\.app-backdrop\s*\{/);
+    expect(css).toMatch(/@supports not/);
+  });
+});

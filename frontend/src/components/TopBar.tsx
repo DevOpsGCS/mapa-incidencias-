@@ -28,7 +28,7 @@ export function TopBar({
   onLogout,
 }: TopBarProps) {
   return (
-    <header className="hud-scale fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between gap-4 bg-bg px-5">
+    <header className="hud-scale fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between gap-4 glass px-5">
       <div className="flex items-center gap-3">
         <img src={logo} alt="Global Customs Solutions" className="h-8 w-auto" />
         <div>
@@ -91,6 +91,7 @@ function ViewButton({
     <button
       type="button"
       onClick={onClick}
+      style={active ? { boxShadow: "var(--glow-select)" } : undefined}
       className={`rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
         active
           ? "border-accent-fill bg-accent-fill text-text-strong"
