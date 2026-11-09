@@ -1,4 +1,5 @@
 import { StateType } from "../types";
+import { PRIORITY_HEX, STATE_TYPE_HEX } from "./dataColors";
 
 export type SiteSeverity = "idle" | "warning" | "urgente";
 
@@ -6,23 +7,14 @@ export function isOpenStateType(t: StateType): boolean {
   return t === "new" || t === "open" || t === "pending";
 }
 
-const STATE_TYPE_COLORS: Record<StateType, string> = {
-  new: "#3ED6C4",
-  open: "#4C7FFF",
-  pending: "#F5A623",
-  closed: "#64748B",
-};
-
 export function stateTypeColor(t: StateType): string {
-  return STATE_TYPE_COLORS[t];
+  return STATE_TYPE_HEX[t];
 }
 
 /** rank 0 = la prioridad más alta. */
 export function priorityColor(rank: number): string {
-  if (rank <= 0) return "#FF4D6D";
-  if (rank === 1) return "#F5A623";
-  if (rank === 2) return "#4C7FFF";
-  return "#34D399";
+  if (!Number.isFinite(rank) || rank <= 0) return PRIORITY_HEX[0];
+  return PRIORITY_HEX[Math.min(Math.floor(rank), 3)];
 }
 
 export function siteSeverity(stat: { open: number; topPriorityOpen: number }): SiteSeverity {

@@ -85,12 +85,12 @@ describe("computeZnunyStats", () => {
 
 describe("colores", () => {
   it("priorityColor por rank", () => {
-    expect(priorityColor(0)).toBe("#FF4D6D");
-    expect(priorityColor(3)).toBe("#34D399");
-    expect(priorityColor(7)).toBe("#34D399");
+    expect(priorityColor(0)).toBe("#ff4d6d");
+    expect(priorityColor(3)).toBe("#34d399");
+    expect(priorityColor(7)).toBe("#34d399");
   });
   it("stateTypeColor", () => {
-    expect(stateTypeColor("pending")).toBe("#F5A623");
+    expect(stateTypeColor("pending")).toBe("#f5a623");
   });
   it("siteSeverity", () => {
     expect(siteSeverity({ open: 0, topPriorityOpen: 0 })).toBe("idle");

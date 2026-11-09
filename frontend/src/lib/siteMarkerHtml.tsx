@@ -38,14 +38,14 @@ const BADGE_OFFSET = 6;
  * (rank 0 = la más alta, rank 1, rank 2, rank ≥ 3), con los mismos colores
  * que priorityColor. Cada cuadrante se pinta SOLO si esa prioridad tiene al
  * menos un ticket abierto en el sitio; si no, queda en gris neutro
- * (var(--border)). No es proporcional a la cantidad de tickets.
+ * (var(--line-strong)). No es proporcional a la cantidad de tickets.
  */
 function priorityRingBackground(presence: PriorityPresence): string {
   const [top, high, normal, low] = presence;
-  const c0 = top ? "var(--fill-danger)" : "var(--border)";
-  const c1 = high ? "var(--fill-warning)" : "var(--border)";
-  const c2 = normal ? "var(--fill-accent)" : "var(--border)";
-  const c3 = low ? "var(--fill-success)" : "var(--border)";
+  const c0 = top ? "var(--fill-danger)" : "var(--line-strong)";
+  const c1 = high ? "var(--fill-warning)" : "var(--line-strong)";
+  const c2 = normal ? "var(--fill-accent)" : "var(--line-strong)";
+  const c3 = low ? "var(--fill-success)" : "var(--line-strong)";
   return `conic-gradient(from 0deg, ${c0} 0% 25%, ${c1} 25% 50%, ${c2} 50% 75%, ${c3} 75% 100%)`;
 }
 
@@ -122,7 +122,7 @@ export function buildSiteMarkerHtml({
         ">${queueGlyph(dominant.queue, Math.round(BADGE_SIZE * 0.55), 2.25)}</div>`
       : "";
 
-  const selectedRing = selected ? "0 0 0 3px rgba(62,214,196,0.55)," : "";
+  const selectedRing = selected ? "0 0 0 3px rgba(0,122,252,.6)," : "";
   // Rojo pulsante para sitios con la prioridad máxima abierta (ver .marker-pulse); azul
   // más sutil para sitios con cualquier otro ticket abierto, así se
   // distingue de un sitio realmente sin nada pendiente (sin glow).

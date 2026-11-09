@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ACCENT_CYAN, CHART_CHROME } from "../lib/labels";
+import { CHART_CHROME } from "../lib/labels";
 import { ZnunyStats } from "../lib/znunyStats";
 
 interface TrendChartProps {
@@ -58,8 +58,8 @@ export function TrendChart({ stats }: TrendChartProps) {
           <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={ACCENT_CYAN} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={ACCENT_CYAN} stopOpacity={0} />
+                <stop offset="0%" stopColor={"var(--accent-text)"} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={"var(--accent-text)"} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid
@@ -95,10 +95,10 @@ export function TrendChart({ stats }: TrendChartProps) {
             <Area
               type="monotone"
               dataKey="count"
-              stroke={ACCENT_CYAN}
+              stroke={"var(--accent-text)"}
               strokeWidth={2}
               fill="url(#trendFill)"
-              dot={{ r: 3, fill: ACCENT_CYAN, strokeWidth: 0 }}
+              dot={{ r: 3, fill: "var(--accent-text)", strokeWidth: 0 }}
               activeDot={{ r: 5 }}
             />
           </AreaChart>
