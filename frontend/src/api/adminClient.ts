@@ -102,3 +102,26 @@ export function setUserPassword(username: string, password: string): Promise<{ o
 export function deleteUser(username: string): Promise<{ ok: true }> {
   return adminRequest(`/users/${encodeURIComponent(username)}`, { method: "DELETE" });
 }
+
+export interface PollerStatus {
+  lastOkAt: string | null;
+  lastErrorAt: string | null;
+  lastError: string | null;
+}
+
+export interface AdminStatus {
+  serviceDesk: {
+    ok: boolean;
+    latencyMs: number | null;
+    lastError: string | null;
+    ticketPoller: PollerStatus;
+    statePoller: PollerStatus;
+  };
+  legacy: { source: "live" | "snapshot"; frozenAt: string | null; total: number | null };
+  server: { version: string; startedAt: string };
+}
+
+/** Estado de conexión con la Mesa de Servicio (nunca responde 500: un túnel caído llega como `ok: false`). */
+export function fetchAdminStatus(): Promise<AdminStatus> {
+  return adminRequest<AdminStatus>("/status");
+}

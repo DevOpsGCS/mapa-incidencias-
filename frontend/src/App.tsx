@@ -45,7 +45,7 @@ export default function App() {
         lastHeartbeatAt={lastHeartbeatAt}
         serviceDeskOk={serviceDeskOk}
         isAdmin={user?.role === "admin"}
-        onOpenAdmin={() => navigate("/admin/sites")}
+        onOpenAdmin={() => navigate("/admin")}
         onLogout={logout}
       />
       <NotificationStack
