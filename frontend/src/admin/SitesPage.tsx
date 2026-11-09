@@ -140,6 +140,10 @@ export function SitesPage() {
   const [filter, setFilter] = useState("");
   // Configurados se seleccionan por id; sin configurar, por clave.
   const [selected, setSelected] = useState<string[]>([]);
+  // La selección solo vale para lo que se ve: al cambiar de pestaña o de filtro se descarta.
+  useEffect(() => {
+    setSelected([]);
+  }, [viewTab, filter]);
   const [form, setForm] = useState<FormState | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

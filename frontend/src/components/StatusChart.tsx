@@ -5,12 +5,14 @@ import { StateType } from "../types";
 
 interface StatusChartProps {
   stats: ZnunyStats;
+  /** Clic en una barra: filtra el detalle por ese tipo de estado. */
+  onSelectState?: (stateType: StateType) => void;
 }
 
 const STATE_TYPE_ORDER: Record<StateType, number> = { new: 0, open: 1, pending: 2, closed: 3 };
 
 /** Solo el gráfico: el panel (título y "Ver detalles") lo pone MetricsView. */
-export function StatusChart({ stats }: StatusChartProps) {
+export function StatusChart({ stats, onSelectState }: StatusChartProps) {
   // Estados reales de la mesa (nombres en vivo), ordenados por tipo y luego por nombre.
   const data = [...stats.byState]
     .sort((a, b) => STATE_TYPE_ORDER[a.stateType] - STATE_TYPE_ORDER[b.stateType] || a.name.localeCompare(b.name))
@@ -47,7 +49,15 @@ export function StatusChart({ stats }: StatusChartProps) {
             }}
             labelStyle={{ color: UI_HEX.tooltipLabel }}
           />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={48}>
+          <Bar
+            dataKey="count"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={48}
+            cursor={onSelectState ? "pointer" : undefined}
+            onClick={(entry: { stateType?: StateType }) => {
+              if (entry.stateType) onSelectState?.(entry.stateType);
+            }}
+          >
             {data.map((entry) => (
               <Cell key={entry.label} fill={STATE_TYPE_HEX[entry.stateType]} />
             ))}

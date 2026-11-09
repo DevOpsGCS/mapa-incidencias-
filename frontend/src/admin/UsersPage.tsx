@@ -70,6 +70,10 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  // La selección solo vale para lo que se ve: al cambiar de pestaña o de filtro se descarta.
+  useEffect(() => {
+    setSelected([]);
+  }, [viewTab, filter]);
   const [flyout, setFlyout] = useState<FlyoutState | null>(null);
   const [deleting, setDeleting] = useState(false);
 

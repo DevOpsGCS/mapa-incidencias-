@@ -96,15 +96,13 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
 
   return (
     <div
-      className={`pointer-events-auto w-[400px] max-w-full px-4 py-3.5 transition-all duration-300 ease-out ${
+      className={`glass pointer-events-auto w-[400px] max-w-full px-4 py-3.5 transition-all duration-300 ease-out ${
         visible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
       }`}
       style={{
-        background: `${priorityTint(priorityRank, "card")}, var(--glass-bg)`,
-        backdropFilter: "var(--glass-blur)",
-        WebkitBackdropFilter: "var(--glass-blur)",
+        // Solo el tinte va inline: se apila sobre el fondo de .glass (con su respaldo @supports).
+        backgroundImage: priorityTint(priorityRank, "card"),
         borderRadius: 16,
-        boxShadow: "var(--glass-edge), var(--glass-shadow)",
       }}
     >
       <div className="flex items-start gap-2">

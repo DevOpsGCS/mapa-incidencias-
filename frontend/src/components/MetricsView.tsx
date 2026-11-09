@@ -82,7 +82,8 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    // Diferido: algunos navegadores cancelan la descarga si se revoca de inmediato.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   return (
@@ -142,9 +143,9 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
 
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <div className="rounded-card border border-line glass p-4">
-            <PanelHeader title="Tickets por estado" onDetails={() => onShowDetails({})} />
+            <PanelHeader title="Tickets actuales por estado" onDetails={() => onShowDetails({})} />
             <div className="mt-2">
-              <StatusChart stats={stats} />
+              <StatusChart stats={stats} onSelectState={(stateType) => onShowDetails({ stateType })} />
             </div>
           </div>
           <div className="rounded-card border border-line glass p-4">

@@ -37,7 +37,7 @@ export const ALL_COLUMNS = Object.keys(COLUMN_LABELS) as ColumnId[];
 export const COLUMNS_STORAGE_KEY = "metrics.columns.v1";
 
 function isColumnId(value: unknown): value is ColumnId {
-  return typeof value === "string" && value in COLUMN_LABELS;
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(COLUMN_LABELS, value);
 }
 
 /** Lee las columnas guardadas; ante cualquier fallo devuelve DEFAULT_COLUMNS. */

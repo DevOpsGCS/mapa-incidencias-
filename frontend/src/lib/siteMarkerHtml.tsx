@@ -59,7 +59,7 @@ function escapeAttr(value: string): string {
 
 function queueGlyph(queue: string | undefined, size: number, stroke: number): string {
   const Icon = queueIcon(queue);
-  return renderToStaticMarkup(<Icon size={size} color="var(--text)" stroke={stroke} />);
+  return renderToStaticMarkup(<Icon size={size} color="var(--text-strong)" stroke={stroke} />);
 }
 
 function chip(edge: number, zIndex: number, content: string, extraStyle = ""): string {
@@ -154,7 +154,7 @@ export function buildSiteMarkerHtml({
       iconsToShow.length * SECONDARY_STEP,
       10 + iconsToShow.length,
       `+${overflowCount}`,
-      "font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--cyan);"
+      "font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--text-strong);"
     );
   }
 

@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { COLUMN_LABELS, DEFAULT_COLUMNS, loadColumns, saveColumns } from "../src/lib/tableColumns";
 
 describe("loadColumns", () => {
+  it("ignora claves del prototipo y fuerza el título", () => {
+    const cols = loadColumns({ getItem: () => JSON.stringify(["toString", "constructor", "title"]) });
+    expect(cols).toEqual(["title"]);
+    expect(loadColumns({ getItem: () => JSON.stringify(["toString", "queue"]) })).toEqual(["queue", "title"]);
+  });
   it("con null devuelve los defaults", () => expect(loadColumns(null)).toEqual(DEFAULT_COLUMNS));
   it("con getItem que lanza devuelve los defaults", () => {
     const storage = {

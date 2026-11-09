@@ -78,10 +78,10 @@ export function ResetPasswordPage() {
           </label>
 
           {error && (
-        <p className={AUTH_ERROR_CLASS} style={AUTH_ERROR_STYLE}>
-          {error}
-        </p>
-      )}
+            <p className={AUTH_ERROR_CLASS} style={AUTH_ERROR_STYLE}>
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
