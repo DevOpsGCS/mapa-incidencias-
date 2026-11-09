@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DetailDrawer } from "./DetailDrawer";
+import { SitePanel } from "./SitePanel";
 import { KpiDock } from "./KpiDock";
 import { MapView } from "./MapView";
 import { SiteRail } from "./SiteRail";
@@ -106,7 +106,7 @@ export function MapHeroView({ sites, tickets, catalog, selectedSite, onSelectSit
       />
 
       {selectedSite ? (
-        <DetailDrawer
+        <SitePanel
           site={selectedSite}
           tickets={filteredTickets}
           catalog={catalog}
