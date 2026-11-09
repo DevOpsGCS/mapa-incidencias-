@@ -111,7 +111,10 @@ Layout: barra superior `--surface-1` (logo, "Administración · Mapa de Incidenc
 
 ## 7. Otras pantallas
 - **Login / recuperar / restablecer**: fondo `--bg` con el contorno del país tenue y viñeta; tarjeta `--surface-1` radio 24 con logo GCS, "Mapa de Incidencias", "Global Customs Solutions · Mesa de Servicio"; inputs radio 6; "Ingresar" en píldora `--accent-fill`; errores en línea roja bajo el campo.
-- **Histórico osTicket**: solo se pasa a tokens (estructura y datos intactos); "Datos congelados al dd/mm/aaaa" como insignia ámbar junto al título.
+- **Histórico osTicket** (decisión del usuario: sin identidad de "archivo" especial):
+  - Encabezado con el **logo de osTicket** (`frontend/src/img/osticketlogo.png`, 28 px, radio 6) + título "Histórico osTicket" + "Datos congelados al dd/mm/aaaa" como insignia ámbar (solo en modo snapshot).
+  - **Se quitan las tarjetas y gráficos de métricas** (KPIs, estados, tendencia): la vista queda **solo con la lista de tickets y sus filtros** (departamento → equipo → agente, estado, prioridad, como hoy), con los tokens nuevos y el mismo estilo de tabla que Métricas (§5) pero sin exportar/columnas/buscador.
+  - Datos y permisos (`allowedDepartments`) sin cambios. `legacyStats.ts` y los gráficos copiados de `legacy/` quedan sin uso y se eliminan si ningún otro archivo los importa.
 - **Avisos**: error / sin colas / Mesa de Servicio no disponible apilados sin superponerse, como píldoras anchas con ícono. "Cargando dashboard…" → esqueleto de paneles. **SyncStatus**: punto verde "hace N s"; ámbar/rojo "Sin conexión con la Mesa de Servicio"; sin "--" al inicio (muestra "Conectando…").
 
 ## 8. Cambios de backend (mínimos)
