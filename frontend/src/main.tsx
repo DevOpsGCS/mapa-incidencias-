@@ -4,7 +4,8 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AdminHomePage } from "./admin/AdminHomePage";
 import { AdminLayout } from "./admin/AdminLayout";
-import { AdminSitesSection } from "./admin/AdminSitesSection";
+import { QueuesPage } from "./admin/QueuesPage";
+import { SitesPage } from "./admin/SitesPage";
 import { UsersPage } from "./admin/UsersPage";
 import { AuthGate } from "./auth/AuthGate";
 import { AuthProvider } from "./auth/AuthContext";
@@ -29,7 +30,7 @@ function AdminPage({ title, children }: { title: string; children: ReactNode }) 
   );
 }
 
-/** Marcador temporal hasta que las páginas nuevas de Colas y Estado reemplacen esta ruta. */
+/** Marcador temporal hasta que la página de Estado de conexión reemplace esta ruta. */
 function ComingSoon() {
   return <p className="text-sm text-text-muted">Próximamente</p>;
 }
@@ -66,7 +67,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
                     path="/admin/sites"
                     element={
                       <AdminPage title="Sitios">
-                        <AdminSitesSection />
+                        <SitesPage />
                       </AdminPage>
                     }
                   />
@@ -74,7 +75,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
                     path="/admin/queues"
                     element={
                       <AdminPage title="Colas">
-                        <ComingSoon />
+                        <QueuesPage />
                       </AdminPage>
                     }
                   />
