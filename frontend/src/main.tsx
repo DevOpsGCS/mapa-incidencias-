@@ -6,6 +6,7 @@ import { AdminHomePage } from "./admin/AdminHomePage";
 import { AdminLayout } from "./admin/AdminLayout";
 import { QueuesPage } from "./admin/QueuesPage";
 import { SitesPage } from "./admin/SitesPage";
+import { StatusPage } from "./admin/StatusPage";
 import { UsersPage } from "./admin/UsersPage";
 import { AuthGate } from "./auth/AuthGate";
 import { AuthProvider } from "./auth/AuthContext";
@@ -28,11 +29,6 @@ function AdminPage({ title, children }: { title: string; children: ReactNode }) 
       </AdminLayout>
     </RequireRole>
   );
-}
-
-/** Marcador temporal hasta que la página de Estado de conexión reemplace esta ruta. */
-function ComingSoon() {
-  return <p className="text-sm text-text-muted">Próximamente</p>;
 }
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
@@ -83,7 +79,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
                     path="/admin/status"
                     element={
                       <AdminPage title="Estado de conexión">
-                        <ComingSoon />
+                        <StatusPage />
                       </AdminPage>
                     }
                   />
