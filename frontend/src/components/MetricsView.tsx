@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReportCard } from "./ReportCard";
 import { StatusChart } from "./StatusChart";
 import { TicketsTable } from "./TicketsTable";
 import { TrendChart } from "./TrendChart";
 import { priorityTint } from "../lib/priorityTint";
+import { ColumnId } from "../lib/tableColumns";
+import { csvFileName, ticketsToCsv } from "../lib/ticketsCsv";
 import { createdInRange, DateRange, trendFor, ZnunyStats } from "../lib/znunyStats";
 import { Catalog, Site, StateType, Ticket } from "../types";
 
@@ -23,15 +25,15 @@ interface MetricsViewProps {
 
 const RANGE_OPTIONS: DateRange[] = [7, 30, 90];
 
-/** Segundos desde `date`, refrescado cada segundo (null si aún no hay latido). */
-function useSecondsSince(date: Date | null | undefined): number | null {
+/** "Actualizado hace N s": el tic por segundo vive aquí para no re-renderizar la tabla. */
+function UpdatedAgo({ at }: { at: Date | null | undefined }) {
   const [, setTick] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => setTick((n) => n + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
-  if (!date) return null;
-  return Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (!at) return <>Esperando datos</>;
+  return <>Actualizado hace {Math.max(0, Math.round((Date.now() - at.getTime()) / 1000))} s</>;
 }
 
 function PanelHeader({ title, onDetails }: { title: string; onDetails: () => void }) {
@@ -45,10 +47,15 @@ function PanelHeader({ title, onDetails }: { title: string; onDetails: () => voi
   );
 }
 
-export function MetricsView({ tickets, sites, stats, catalog, lastHeartbeatAt = null, onRefresh }: MetricsViewProps) {
+export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, onRefresh }: MetricsViewProps) {
   const [range, setRange] = useState<DateRange>(30);
   const tableRef = useRef<HTMLElement>(null);
-  const seconds = useSecondsSince(lastHeartbeatAt);
+  const [detailsFilter, setDetailsFilter] = useState<DetailsFilter | null>(null);
+  const exportRef = useRef<{ rows: Ticket[]; columns: ColumnId[] }>({ rows: [], columns: [] });
+  const onExportDataChange = useCallback((data: { rows: Ticket[]; columns: ColumnId[] }) => {
+    exportRef.current = data;
+  }, []);
+  const clearDetailsFilter = useCallback(() => setDetailsFilter(null), []);
 
   const openQueues = useMemo(
     () => new Set(tickets.filter((t) => t.stateType !== "closed").map((t) => t.queue)).size,
@@ -57,9 +64,25 @@ export function MetricsView({ tickets, sites, stats, catalog, lastHeartbeatAt = 
   const created = useMemo(() => createdInRange(tickets, range, new Date()).length, [tickets, range]);
   const trend = useMemo(() => trendFor(tickets, range, new Date()), [tickets, range]);
 
-  // La tabla (T8) consumirá el filtro; por ahora solo se lleva al usuario a ella.
-  const onShowDetails = (_filter: DetailsFilter) => {
+  const onShowDetails = (filter: DetailsFilter) => {
+    setDetailsFilter(filter);
     tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const exportCsv = () => {
+    const { rows, columns } = exportRef.current;
+    const csv = ticketsToCsv(rows, columns, {
+      siteName: (t) => t.siteName ?? t.siteKey ?? "",
+      priorityName: (t) => t.priority,
+    });
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = csvFileName(new Date());
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -70,7 +93,7 @@ export function MetricsView({ tickets, sites, stats, catalog, lastHeartbeatAt = 
             <div className="text-xs text-text-label">Métricas › Resumen de tickets</div>
             <h1 className="mt-1 text-[22px] font-bold text-text-strong">Resumen de tickets</h1>
             <p className="mt-1 text-xs text-text-muted">
-              {seconds === null ? "Esperando datos" : `Actualizado hace ${seconds} s`} · datos en vivo de la Mesa de
+              <UpdatedAgo at={lastHeartbeatAt} /> · datos en vivo de la Mesa de
               Servicio
             </p>
           </div>
@@ -89,9 +112,8 @@ export function MetricsView({ tickets, sites, stats, catalog, lastHeartbeatAt = 
             </select>
             <button
               type="button"
-              disabled
-              title="Disponible con la tabla"
-              className="rounded-md border border-line-control px-3 py-1.5 text-xs text-text-strong opacity-50"
+              onClick={exportCsv}
+              className="rounded-md border border-line-control px-3 py-1.5 text-xs text-text-strong hover:bg-surface-2"
             >
               Exportar CSV
             </button>
@@ -136,7 +158,14 @@ export function MetricsView({ tickets, sites, stats, catalog, lastHeartbeatAt = 
         </section>
 
         <section ref={tableRef}>
-          <TicketsTable tickets={tickets} sites={sites} catalog={catalog} />
+          <TicketsTable
+            tickets={tickets}
+            catalog={catalog}
+            range={range}
+            externalFilter={detailsFilter}
+            onClearExternalFilter={clearDetailsFilter}
+            onExportDataChange={onExportDataChange}
+          />
         </section>
       </div>
     </div>
