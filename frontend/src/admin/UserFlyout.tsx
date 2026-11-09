@@ -12,6 +12,7 @@ import {
   splitSelectedQueues,
 } from "../lib/adminQueues";
 import { profilePatch } from "../lib/userCommands";
+import { saveExistingUser } from "../lib/userSave";
 import { AdminUserSummary, Catalog, Role } from "../types";
 import { Pill } from "./Pill";
 
@@ -19,7 +20,7 @@ export type FlyoutTab = "account" | "queues" | "departments" | "password";
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: "Administrador",
-  normal: "Usuario",
+  normal: "Normal",
 };
 
 const QUEUE_MODE_OPTIONS: { mode: QueueAccessMode; label: string }[] = [
@@ -49,6 +50,8 @@ interface UserFlyoutProps {
   onClose: () => void;
   /** Se llama tras guardar (recarga la lista). */
   onSaved: () => Promise<void> | void;
+  /** Rol cambiado pero falló el resto: se refresca la lista y se informa. */
+  onPartial: (message: string) => void;
   onUnauthorized: () => void;
 }
 
@@ -90,6 +93,7 @@ export function UserFlyout({
   catalogQueues,
   onClose,
   onSaved,
+  onPartial,
   onUnauthorized,
 }: UserFlyoutProps) {
   const isNew = user === null;
@@ -121,6 +125,11 @@ export function UserFlyout({
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
+    if (username.trim() === "" || email.trim() === "") {
+      setTab("account");
+      setError("Completá el usuario y el email.");
+      return;
+    }
     if (isNew && initialPassword.length < 8) {
       setTab("account");
       setError("La contraseña debe tener al menos 8 caracteres.");
@@ -154,8 +163,22 @@ export function UserFlyout({
           allowedQueues: queuesPayload.value,
           allowedDepartments,
         });
-        if (role !== user.role) await setUserRole(user.username, role);
-        if (Object.keys(patch).length > 0) await updateUserProfile(user.username, patch);
+        const result = await saveExistingUser(
+          { setUserRole, updateUserProfile },
+          user.username,
+          role !== user.role ? role : null,
+          patch
+        );
+        if (result.status === "partial") {
+          if (result.error instanceof UnauthorizedError) {
+            onUnauthorized();
+            return;
+          }
+          await onSaved();
+          onPartial(result.message);
+          onClose();
+          return;
+        }
       }
       await onSaved();
       onClose();
@@ -283,6 +306,12 @@ export function UserFlyout({
                         className={FIELD_CLASS}
                       />
                     </label>
+                  )}
+                  {isNew && departmentsError && (
+                    <p role="note" className="text-xs text-[color:var(--data-p1-text)]">
+                      Sin la lista de departamentos el usuario se crea sin restricción: verá todo el histórico de
+                      osTicket. Podés restringirlo editándolo cuando la lista vuelva a cargar.
+                    </p>
                   )}
                   <label className={LABEL_CLASS}>
                     Rol

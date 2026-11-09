@@ -183,19 +183,24 @@ export function UsersPage() {
     setError(null);
     try {
       // En secuencia: si uno falla se corta y se informa cuál, sin tocar el resto.
+      let done = 0;
+      let failure: string | null = null;
       for (const name of selected) {
         try {
           await deleteUser(name);
+          done += 1;
         } catch (err) {
           if (err instanceof UnauthorizedError) {
             clearSession();
             return;
           }
-          setError(err instanceof Error ? err.message : `No se pudo borrar el usuario "${name}".`);
+          const detail = err instanceof Error ? err.message : "error desconocido";
+          failure = `Se eliminaron ${done} de ${selected.length}; falló "${name}": ${detail}`;
           break;
         }
       }
       await load();
+      if (failure) setError(failure);
     } finally {
       setDeleting(false);
     }
@@ -348,6 +353,7 @@ export function UsersPage() {
           catalogQueues={catalogQueues}
           onClose={() => setFlyout(null)}
           onSaved={load}
+          onPartial={setError}
           onUnauthorized={handleUnauthorized}
         />
       )}
