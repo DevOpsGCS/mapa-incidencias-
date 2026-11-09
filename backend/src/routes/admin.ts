@@ -182,7 +182,7 @@ adminRouter.post("/sites", async (req, res, next) => {
     const options = await getSiteOptions();
     if (!options.some((option) => option.key === znunyKey)) {
       res.status(400).json({
-        error: `"${znunyKey}" no existe como opción del campo Ubicacion en Znuny. No se puede asignar coordenadas a un sitio inventado.`,
+        error: `"${znunyKey}" no existe como opción del campo Ubicacion en la Mesa de Servicio. No se puede asignar coordenadas a un sitio inventado.`,
       });
       return;
     }
@@ -260,7 +260,7 @@ async function resolveAllowedQueues(raw: unknown): Promise<ResolveQueuesResult> 
   if (unknown.length > 0) {
     return {
       ok: false,
-      error: `Colas inexistentes en Znuny: ${unknown.map((q) => `"${q}"`).join(", ")}.`,
+      error: `Colas inexistentes en la Mesa de Servicio: ${unknown.map((q) => `"${q}"`).join(", ")}.`,
     };
   }
   return { ok: true, queues: [...new Set(raw)] };
