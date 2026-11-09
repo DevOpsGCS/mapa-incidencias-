@@ -4,6 +4,7 @@ import { MapZoomControls } from "./MapZoomControls";
 import { countryFitOptions, EL_SALVADOR_BOUNDS } from "../lib/mapFraming";
 import { buildSiteMarkerIcon } from "../lib/siteMarkerIcon";
 import { EMPTY_PRESENCE, PriorityPresence, QueueCount } from "../lib/siteDominance";
+import { siteImageUrl } from "../lib/siteImages";
 import { Site } from "../types";
 
 interface MapViewProps {
@@ -53,7 +54,13 @@ export function MapView({
           <Marker
             key={site.id}
             position={[site.lat, site.lng]}
-            icon={buildSiteMarkerIcon(queueCounts, priorityPresence, isSelected, site.id)}
+            icon={buildSiteMarkerIcon(
+              queueCounts,
+              priorityPresence,
+              isSelected,
+              site.id,
+              siteImageUrl(site.znunyKey)
+            )}
             eventHandlers={{ click: () => onSelectSite(site) }}
           />
         );

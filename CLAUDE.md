@@ -35,6 +35,8 @@ Dashboard con mapa que muestra en vivo los tickets de la mesa de servicio **Znun
 - `components/MetricsView.tsx` + `TicketsTable.tsx` — métricas y tabla (filtros: cola en árbol → propietario, más estado, prioridad, tipo y servicio). `NoQueueAccessBanner` = aviso del usuario sin colas.
 - `legacy/` — vista "Histórico osTicket" (métricas + tabla sobre `LegacyTicket`, sin mapa ni tiempo real; "Datos congelados al dd/mm/aaaa" si viene del snapshot; "Ver en osTicket" solo con `source = live`).
 - `lib/znunyColors.ts`, `priorityRank.ts`, `svTime.ts`, `queueFilter.ts`, `znunyStats.ts` — colores por tipo de estado y por rank de prioridad, fechas en `America/El_Salvador`, filtro de colas, KPIs.
+- `lib/siteMarkerHtml.tsx` (HTML puro, testeable) + `lib/siteMarkerIcon.tsx` (`L.divIcon` con caché) — marcador del sitio: **foto del sitio** en el centro dentro del aro de 4 cuadrantes de prioridad, insignia arriba a la izquierda con la cola dominante (solo si hay tickets abiertos) y fichas abajo a la derecha con las demás colas. Todo cabe en 90×90 px. Sin foto, el centro muestra el ícono de la cola dominante.
+- `lib/siteImages.ts` — foto por **clave de `Ubicacion`** (slug: minúsculas, sin tildes, espacios → `-`) en `public/sites/<slug>.webp`, miniaturas de 160×160 (~5 KB) sacadas de las fotos del proyecto MapaSensores. Hoy sin foto: "Oficina Diaspora". Para agregar una: guardar el `.webp` y sumar el slug a `AVAILABLE_SLUGS`.
 - `lib/hudScale.ts` + `lib/mapFraming.ts` — adaptación a navegadores de TV (ver decisiones).
 - `hooks/useSocket.ts` — reconexión con resync completo + watchdog. Pruebas: `npx vitest run` (solo funciones puras de `lib/` y el reducer).
 
