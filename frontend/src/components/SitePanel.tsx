@@ -193,6 +193,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
                 <button
                   key={ticket.id}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => setSelectedId(ticket.id)}
                   className={`mb-1 grid h-[52px] w-full items-center gap-3 rounded-lg px-3 text-left ${
                     isSelected ? "" : "hover:bg-surface-2"

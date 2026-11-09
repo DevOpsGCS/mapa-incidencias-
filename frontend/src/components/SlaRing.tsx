@@ -56,7 +56,7 @@ export function SlaRing({ percentage, size = 42 }: SlaRingProps) {
         style={{
           width: size,
           height: size,
-          filter: isCritical ? `drop-shadow(0 0 4px ${color}80)` : undefined,
+          filter: isCritical ? `drop-shadow(0 0 4px var(--data-p0))` : undefined,
         }}
         title={`SLA consumido: ${rounded}%`}
       >
@@ -68,18 +68,17 @@ export function SlaRing({ percentage, size = 42 }: SlaRingProps) {
           role="img"
           aria-label={`SLA consumido: ${rounded}%`}
         >
-          <circle cx={center} cy={center} r={RADIUS} fill="none" stroke="var(--glass-border)" strokeWidth={STROKE} />
+          <circle cx={center} cy={center} r={RADIUS} fill="none" strokeWidth={STROKE} style={{ stroke: "var(--line-strong)" }} />
           <circle
             cx={center}
             cy={center}
             r={RADIUS}
             fill="none"
-            stroke={color}
             strokeWidth={STROKE}
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 600ms ease-out, stroke 300ms ease-out" }}
+            style={{ stroke: color, transition: "stroke-dashoffset 600ms ease-out, stroke 300ms ease-out" }}
           />
         </svg>
         <span

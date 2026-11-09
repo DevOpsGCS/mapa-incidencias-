@@ -10,7 +10,7 @@ interface SlaBarProps {
 // degradado en sí. Así el tramo revelado a bajo % siempre es verde, y solo
 // entra en amarillo/rojo si el % real llega a esos tramos — los cortes
 // (50%/75%) calzan con los mismos umbrales que ya usa SlaRing.
-const SLA_GRADIENT = "linear-gradient(to right, var(--green) 0%, var(--amber) 50%, var(--red) 75%, var(--red) 100%)";
+const SLA_GRADIENT = "linear-gradient(to right, var(--data-p3) 0%, var(--data-p1) 50%, var(--data-p0) 75%, var(--data-p0) 100%)";
 
 /** Misma lógica y colores que SlaRing (SLA consumido), en formato de barra horizontal para la tabla de tickets. */
 export function SlaBar({ percentage }: SlaBarProps) {
@@ -23,7 +23,7 @@ export function SlaBar({ percentage }: SlaBarProps) {
 
   return (
     <div className="flex items-center gap-2" title={`SLA consumido: ${rounded}%`}>
-      <div className="relative h-1.5 w-16 flex-shrink-0 overflow-hidden rounded-full bg-[color:var(--glass-border)]">
+      <div className="relative h-1.5 w-16 flex-shrink-0 overflow-hidden rounded-full bg-line-strong">
         <div
           className="absolute inset-y-0 left-0 w-full origin-left rounded-full transition-transform duration-500 ease-out"
           style={{ transform: `scaleX(${percentage / 100})`, background: SLA_GRADIENT }}
