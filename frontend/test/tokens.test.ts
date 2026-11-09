@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PRIORITY_HEX, PRIORITY_TEXT_HEX, STATE_TYPE_HEX } from "../src/lib/dataColors";
+import { PRIORITY_HEX, PRIORITY_RGB, PRIORITY_TEXT_HEX, STATE_TYPE_HEX, UI_HEX } from "../src/lib/dataColors";
 
 const css = readFileSync(resolve(__dirname, "../src/index.css"), "utf8");
 const rootBlock = /:root\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? "";
@@ -48,5 +48,28 @@ describe("tokens de color", () => {
     for (const [type, hex] of Object.entries(STATE_TYPE_HEX)) {
       expect(vars[`--state-${type}`].toLowerCase()).toBe(hex.toLowerCase());
     }
+  });
+
+  it("PRIORITY_RGB coincide con PRIORITY_HEX", () => {
+    PRIORITY_RGB.forEach((rgb, i) => {
+      const hex = "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
+      expect(hex).toBe(PRIORITY_HEX[i].toLowerCase());
+    });
+  });
+
+  it("UI_HEX coincide con las variables de index.css", () => {
+    const map: Record<keyof typeof UI_HEX, string> = {
+      grid: "--line",
+      axis: "--text-label",
+      line: "--text-strong",
+      tooltipBg: "--surface-2",
+      tooltipBorder: "--line-strong",
+      tooltipText: "--text-strong",
+      tooltipLabel: "--text-muted",
+    };
+    for (const [key, name] of Object.entries(map)) {
+      expect(UI_HEX[key as keyof typeof UI_HEX].toLowerCase()).toBe(vars[name].toLowerCase());
+    }
+    expect(Object.keys(UI_HEX).sort()).toEqual(Object.keys(map).sort());
   });
 });

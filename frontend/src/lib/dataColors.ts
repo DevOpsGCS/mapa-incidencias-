@@ -34,3 +34,6 @@ export const UI_HEX = {
   tooltipText: "#ffffff",
   tooltipLabel: "#8b96aa",
 };
+
+/** Contorno del país en el mapa (atributo SVG de Leaflet; no es un token de la interfaz). */
+export const MAP_BOUNDARY_HEX = "#3b82f6";

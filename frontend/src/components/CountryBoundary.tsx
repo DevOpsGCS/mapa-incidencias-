@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { GeoJSON } from "react-leaflet";
 import type { PathOptions } from "leaflet";
+import { MAP_BOUNDARY_HEX } from "../lib/dataColors";
 
 const BOUNDARY_URL = "/data/el-salvador-boundary.geojson";
 
@@ -8,7 +9,7 @@ const BOUNDARY_URL = "/data/el-salvador-boundary.geojson";
 // compita visualmente con los marcadores de sitios ni con las etiquetas
 // del mapa base.
 const BOUNDARY_STYLE: PathOptions = {
-  color: "#3B82F6",
+  color: MAP_BOUNDARY_HEX,
   weight: 1.2,
   fillOpacity: 0,
   opacity: 0.9,
