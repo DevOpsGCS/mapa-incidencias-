@@ -9,6 +9,7 @@ import { MetricsView } from "./components/MetricsView";
 import { NoQueueAccessBanner } from "./components/NoQueueAccessBanner";
 import { NotificationStack } from "./components/NotificationStack";
 import { TopBar, DashboardView } from "./components/TopBar";
+import { bannerState } from "./lib/bannerState";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { Site } from "./types";
 
@@ -30,8 +31,7 @@ export default function App() {
     dismissNotification,
   } = useDashboardData();
   // El 503 del backend dice lo mismo que el aviso de mesa caída: mostrar solo uno.
-  const deskDown = !serviceDeskOk || (error !== null && /mesa de servicio no disponible/i.test(error));
-  const genericError = error !== null && !deskDown ? error : null;
+  const { deskDown, genericError } = bannerState(error, serviceDeskOk);
   const [view, setView] = useState<DashboardView>("map");
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
 

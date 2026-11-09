@@ -70,8 +70,8 @@ export function MapView({
       {/* Viñeta: hermana del MapContainer (no dentro del contenedor de Leaflet).
           El map-pane de Leaflet es un stacking context en z 400, así que la viñeta
           (z 401) queda por encima de todo el mapa, marcadores incluidos, y por debajo
-          de los controles (1000) y los paneles HUD. Por eso es suave: no atenúa los
-          marcadores cercanos a los bordes. */}
+          de los controles (1000) y los paneles HUD. Por eso es suave: solo los
+          atenúa apenas cerca de los bordes. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
