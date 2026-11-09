@@ -22,3 +22,15 @@ export const STATE_TYPE_HEX: Record<StateType, string> = {
   pending: "#f5a623",
   closed: "#64748b",
 };
+
+/** Colores de la interfaz para atributos SVG (recharts), donde var(--x) puede no resolverse
+ *  en navegadores de TV. Valores = tokens de index.css (--line, --text-label, --text-strong...). */
+export const UI_HEX = {
+  grid: "#1c1f24",
+  axis: "#76829a",
+  line: "#ffffff",
+  tooltipBg: "#1c1f24",
+  tooltipBorder: "#333943",
+  tooltipText: "#ffffff",
+  tooltipLabel: "#8b96aa",
+};

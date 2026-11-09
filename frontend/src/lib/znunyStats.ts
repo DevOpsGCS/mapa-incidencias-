@@ -96,3 +96,30 @@ export function computeZnunyStats(
       .map(([date, count]) => ({ date, count })),
   };
 }
+
+export type DateRange = 7 | 30 | 90;
+
+/** Días calendario de El Salvador de la ventana (el último es hoy), en orden ascendente. */
+function rangeDateKeys(days: number, now: Date): string[] {
+  const keys: string[] = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    keys.push(svDateKey(new Date(now.getTime() - i * DAY_MS).toISOString()));
+  }
+  return keys;
+}
+
+/** Tickets creados en los últimos `days` días calendario de El Salvador (incluye hoy). */
+export function createdInRange(tickets: Ticket[], days: DateRange, now: Date): Ticket[] {
+  const keys = new Set(rangeDateKeys(days, now));
+  return tickets.filter((t) => keys.has(svDateKey(t.createdAt)));
+}
+
+/** Tickets creados por día: `days` entradas, la última es hoy (día de El Salvador). */
+export function trendFor(tickets: Ticket[], days: DateRange, now: Date): { date: string; count: number }[] {
+  const counts = new Map(rangeDateKeys(days, now).map((k) => [k, 0] as [string, number]));
+  for (const t of tickets) {
+    const key = svDateKey(t.createdAt);
+    if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return Array.from(counts, ([date, count]) => ({ date, count }));
+}

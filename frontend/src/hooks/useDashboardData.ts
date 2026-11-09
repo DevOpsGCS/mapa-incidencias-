@@ -170,5 +170,5 @@ export function useDashboardData() {
     [state.tickets, state.sites, catalog]
   );
 
-  return { ...state, error: state.error ?? (catalog ? null : catalogError), connected, catalog, stats, notifications, dismissNotification };
+  return { ...state, error: state.error ?? (catalog ? null : catalogError), connected, catalog, stats, notifications, dismissNotification, refresh: loadFullState };
 }

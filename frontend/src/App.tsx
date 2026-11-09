@@ -29,6 +29,7 @@ export default function App() {
     serviceDeskOk,
     notifications,
     dismissNotification,
+    refresh,
   } = useDashboardData();
   // El 503 del backend dice lo mismo que el aviso de mesa caída: mostrar solo uno.
   const { deskDown, genericError } = bannerState(error, serviceDeskOk);
@@ -90,7 +91,14 @@ export default function App() {
           onSelectSite={setSelectedSite}
         />
       ) : (
-        <MetricsView tickets={tickets} sites={sites} stats={stats} catalog={catalog} />
+        <MetricsView
+          tickets={tickets}
+          sites={sites}
+          stats={stats}
+          catalog={catalog}
+          lastHeartbeatAt={lastHeartbeatAt}
+          onRefresh={refresh}
+        />
       )}
     </div>
   );

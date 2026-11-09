@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeZnunyStats } from "../src/lib/znunyStats";
+import { computeZnunyStats, createdInRange, trendFor } from "../src/lib/znunyStats";
 import { priorityColor, siteSeverity, stateTypeColor } from "../src/lib/znunyColors";
 import { svDateKey } from "../src/lib/svTime";
 import type { Site, StateType, Ticket } from "../src/types";
@@ -96,5 +96,24 @@ describe("colores", () => {
     expect(siteSeverity({ open: 0, topPriorityOpen: 0 })).toBe("idle");
     expect(siteSeverity({ open: 2, topPriorityOpen: 0 })).toBe("warning");
     expect(siteSeverity({ open: 2, topPriorityOpen: 1 })).toBe("urgente");
+  });
+});
+
+describe("createdInRange / trendFor", () => {
+  const now = new Date("2026-11-09T18:00:00Z");
+
+  it("createdInRange usa días calendario de El Salvador, inclusivo de hoy", () => {
+    const inside = ticket({ id: 1, createdAt: "2026-10-11T07:00:00Z" });
+    const outside = ticket({ id: 2, createdAt: "2026-10-10T05:00:00Z" });
+    const today = ticket({ id: 3, createdAt: "2026-11-09T12:00:00Z" });
+    const ids = createdInRange([inside, outside, today], 30, now).map((t) => t.id);
+    expect(ids).toEqual([1, 3]);
+  });
+
+  it("trendFor devuelve `days` entradas y la última es hoy", () => {
+    const points = trendFor([ticket({ createdAt: "2026-11-09T12:00:00Z" })], 7, now);
+    expect(points).toHaveLength(7);
+    expect(points[6]).toEqual({ date: "2026-11-09", count: 1 });
+    expect(points[0].date).toBe("2026-11-03");
   });
 });
