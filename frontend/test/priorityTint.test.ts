@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { priorityColor } from "../src/lib/znunyColors";
-import { priorityTextColor, priorityTint, SELECTION_STYLE } from "../src/lib/priorityTint";
+import { priorityTextColor, priorityTint, SELECTION_STYLE, SELECTION_STYLE_INSET } from "../src/lib/priorityTint";
 
 describe("priorityTint", () => {
   it("card usa degradé vertical .14 -> .04 al 55%", () => {
@@ -23,6 +23,12 @@ describe("priorityTint", () => {
   });
   it("selección", () => {
     expect(SELECTION_STYLE).toEqual({ background: "var(--surface-3)", boxShadow: "0 0 0 1px rgba(0,122,252,.6)" });
+  });
+  it("selección inset para filas con scroll", () => {
+    expect(SELECTION_STYLE_INSET).toEqual({
+      background: "var(--surface-3)",
+      boxShadow: "inset 0 0 0 1px rgba(0,122,252,.6)",
+    });
   });
   it("rank NaN o infinito se trata como rank 3 (desconocido)", () => {
     expect(priorityTint(NaN, "row")).toBe(priorityTint(3, "row"));

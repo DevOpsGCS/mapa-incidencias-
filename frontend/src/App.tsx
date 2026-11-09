@@ -29,6 +29,9 @@ export default function App() {
     notifications,
     dismissNotification,
   } = useDashboardData();
+  // El 503 del backend dice lo mismo que el aviso de mesa caída: mostrar solo uno.
+  const deskDown = !serviceDeskOk || (error !== null && /mesa de servicio no disponible/i.test(error));
+  const genericError = error !== null && !deskDown ? error : null;
   const [view, setView] = useState<DashboardView>("map");
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
 
@@ -51,19 +54,19 @@ export default function App() {
       />
 
       {/* Avisos apilados en un único contenedor fijo (antes compartían top y se tapaban). */}
-      {(queueAccess === "none" || error || !serviceDeskOk) && (
+      {(queueAccess === "none" || genericError || deskDown) && (
         <div className="hud-scale pointer-events-none fixed left-1/2 top-[78px] z-40 flex -translate-x-1/2 flex-col items-center gap-2">
           {queueAccess === "none" && <NoQueueAccessBanner />}
-          {error && (
+          {genericError && (
             <div className="flex items-center gap-2.5 rounded-full bg-surface-3 px-4 py-2 text-sm text-text-strong">
               <IconAlertTriangle size={16} stroke={2} style={{ color: "var(--data-p0)" }} />
-              Error cargando datos: {error}.
+              Error cargando datos: {genericError}.
               {/* Solo un fallo de red (sin respuesta del backend) sugiere revisar la API local. */}
-              {/failed to fetch|networkerror|load failed/i.test(error) &&
+              {/failed to fetch|networkerror|load failed/i.test(genericError) &&
                 " Verifica que la API esté corriendo en el puerto 4000."}
             </div>
           )}
-          {!serviceDeskOk && (
+          {deskDown && (
             <div className="flex items-center gap-2.5 rounded-full bg-surface-3 px-4 py-2 text-sm text-text-strong">
               <IconPlugConnectedX size={16} stroke={2} style={{ color: "var(--data-p1)" }} />
               Mesa de Servicio no disponible; los datos pueden estar desactualizados.

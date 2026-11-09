@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { SELECTION_STYLE } from "../lib/priorityTint";
+import { SELECTION_STYLE_INSET } from "../lib/priorityTint";
 import { SEVERITY_COLORS, SITE_TYPE_LABELS } from "../lib/labels";
 import { siteSeverity, SiteSeverity } from "../lib/znunyColors";
 import { ZnunyStats } from "../lib/znunyStats";
@@ -44,7 +44,7 @@ export function SiteRail({ sites, siteStatsById, selectedSiteId, onSelectSite }:
               key={site.id}
               type="button"
               onClick={() => onSelectSite(site)}
-              style={active ? SELECTION_STYLE : undefined}
+              style={active ? SELECTION_STYLE_INSET : undefined}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-surface-2"
             >
               <span

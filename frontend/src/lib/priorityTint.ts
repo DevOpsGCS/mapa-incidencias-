@@ -30,3 +30,9 @@ export const SELECTION_STYLE = {
   background: "var(--surface-3)",
   boxShadow: "0 0 0 1px rgba(0,122,252,.6)",
 };
+
+/** Selección para filas a ancho completo en listas con scroll: el aro va por dentro para no recortarse. */
+export const SELECTION_STYLE_INSET = {
+  background: "var(--surface-3)",
+  boxShadow: "inset 0 0 0 1px rgba(0,122,252,.6)",
+};

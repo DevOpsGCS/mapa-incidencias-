@@ -26,7 +26,7 @@ export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = fals
     {
       label: `${capitalize(topName)} abiertos`,
       value: stats.topPriorityOpen,
-      color: "var(--data-p0)",
+      color: stats.topPriorityOpen > 0 ? "var(--data-p0)" : undefined,
       alarm: stats.topPriorityOpen > 0,
     },
     { label: "Cerrados hoy", value: stats.closedToday },
