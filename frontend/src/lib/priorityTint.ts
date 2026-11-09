@@ -25,14 +25,14 @@ export function priorityTextColor(rank: number): string {
   return PRIORITY_TEXT_HEX[clampRank(rank)];
 }
 
-/** Selección: fondo --surface-3 + contorno azul de 1 px + glow (--glow-select). */
+/** Selección: fondo --surface-3 + solo resplandor azul suave (sin línea). */
 export const SELECTION_STYLE = {
   background: "var(--surface-3)",
-  boxShadow: "0 0 0 1px rgba(0,122,252,.6), 0 0 16px rgba(0,122,252,.25)",
+  boxShadow: "0 0 16px rgba(0,122,252,.30)",
 };
 
 /** Selección para filas a ancho completo en listas con scroll: el aro va por dentro para no recortarse. */
 export const SELECTION_STYLE_INSET = {
   background: "var(--surface-3)",
-  boxShadow: "inset 0 0 0 1px rgba(0,122,252,.6), inset 0 0 12px rgba(0,122,252,.18)",
+  boxShadow: "inset 0 0 14px rgba(0,122,252,.22)",
 };

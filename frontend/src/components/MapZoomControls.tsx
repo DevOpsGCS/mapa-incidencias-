@@ -60,7 +60,7 @@ export function MapZoomControls({ homeBounds }: MapZoomControlsProps) {
       <button
         type="button"
         aria-label="Alejar"
-        className={`${BUTTON_CLASS} border-y border-line`}
+        className={`${BUTTON_CLASS}`}
         onClick={() => map.zoomOut()}
       >
         <Minus size={22} />

@@ -76,7 +76,7 @@ export function QueueTreeSelect(props: QueueTreeSelectProps) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 rounded-[6px] border border-line-control bg-surface-2 px-2 py-1 text-left text-xs text-text-strong focus:outline-none focus:ring-1 focus:ring-accent"
+        className="flex w-full items-center justify-between gap-2 rounded-[6px] bg-surface-2 px-2 py-1 text-left text-xs text-text-strong focus:outline-none focus:ring-1 focus:ring-accent"
         title={selected.join(", ") || undefined}
       >
         <span className="truncate">{summary}</span>
@@ -85,7 +85,7 @@ export function QueueTreeSelect(props: QueueTreeSelectProps) {
       {open && (
         <div
           role="listbox"
-          className="thin-scroll absolute left-0 top-full z-50 mt-1 max-h-64 min-w-full overflow-y-auto rounded-[6px] border border-line-strong bg-surface-2 py-1 shadow-2xl"
+          className="thin-scroll absolute left-0 top-full z-50 mt-1 max-h-64 min-w-full overflow-y-auto rounded-[6px] bg-surface-2 py-1 shadow-2xl"
         >
           <button
             type="button"

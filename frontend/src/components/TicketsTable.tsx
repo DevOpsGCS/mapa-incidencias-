@@ -43,9 +43,9 @@ const STATE_TYPE_LABEL: Record<StateType, string> = {
 };
 
 const controlClasses =
-  "rounded-md border border-line-control bg-surface-2 px-2 py-1.5 text-xs text-text-strong outline-none focus:border-accent-text";
+  "rounded-md bg-surface-2 px-2 py-1.5 text-xs text-text-strong outline-none focus:ring-1 focus:ring-accent";
 const buttonClasses =
-  "inline-flex items-center gap-1.5 rounded-md border border-line-control px-2.5 py-1.5 text-xs text-text-strong hover:bg-surface-2";
+  "inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2.5 py-1.5 text-xs text-text-strong hover:bg-surface-3";
 
 function safeLocalStorage(): Storage | null {
   try {
@@ -291,7 +291,7 @@ export function TicketsTable({
       : null;
 
   return (
-    <div className="rounded-card border border-line glass">
+    <div className="rounded-card glass">
       <div className="flex items-baseline gap-2 px-4 pt-3">
         <h3 className="text-sm font-bold text-text-strong">Tickets</h3>
         <span className="text-xs text-text-muted">
@@ -299,7 +299,7 @@ export function TicketsTable({
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
+      <div className="flex flex-wrap items-center gap-2 p-3">
         <QueueTreeSelect
           className="w-44"
           queues={catalog.queues}
@@ -379,7 +379,7 @@ export function TicketsTable({
             Columnas
           </button>
           {columnsOpen && (
-            <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-md border border-line-strong bg-surface-2 py-1 shadow-2xl">
+            <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-md bg-surface-2 py-1 shadow-2xl">
               {ALL_COLUMNS.map((id) => (
                 <label
                   key={id}
@@ -418,7 +418,7 @@ export function TicketsTable({
       </div>
 
       {(showMore || externalLabel) && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
           {showMore && (
             <>
               <select
@@ -516,7 +516,7 @@ export function TicketsTable({
       </div>
 
       {visibleCount < filtered.length && (
-        <div className="border-t border-line p-3 text-center">
+        <div className="p-3 text-center">
           <button type="button" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)} className={buttonClasses}>
             Ver más
           </button>

@@ -59,7 +59,7 @@ export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncSt
 
   return (
     <div
-      className="flex h-9 items-center gap-2 rounded-[6px] border border-line-control px-3 font-mono text-[12px] text-text"
+      className="flex h-9 items-center gap-2 rounded-[6px] bg-surface-2 px-3 font-mono text-[12px] text-text"
       title={!serviceDeskOk ? "El dashboard sigue conectado, pero no puede consultar la Mesa de Servicio" : undefined}
     >
       <span className="relative flex h-2 w-2">

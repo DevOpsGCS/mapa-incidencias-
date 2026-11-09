@@ -8,9 +8,9 @@ const VIEW_H = 620;
 /** Clases compartidas por las pantallas de auth (inputs, botón primario, links). */
 export const AUTH_LABEL_CLASS = "block text-sm text-text-muted";
 export const AUTH_INPUT_CLASS =
-  "mt-1 w-full rounded-[6px] border border-line-strong bg-surface-2 px-3 py-2 text-text-strong outline-none focus:border-accent";
+  "mt-1 w-full rounded-[6px] bg-surface-2 px-3 py-2 text-text-strong outline-none focus:ring-1 focus:ring-accent";
 export const AUTH_PASSWORD_INPUT_CLASS =
-  "rounded-[6px] border border-line-strong bg-surface-2 px-3 py-2 text-text-strong outline-none focus:border-accent";
+  "rounded-[6px] bg-surface-2 px-3 py-2 text-text-strong outline-none focus:ring-1 focus:ring-accent";
 export const AUTH_PRIMARY_BUTTON_CLASS =
   "w-full rounded-full bg-accent-fill px-4 py-2.5 text-sm font-medium text-text-strong transition-opacity hover:opacity-90 disabled:opacity-50";
 export const AUTH_LINK_CLASS = "block w-full text-center text-xs text-text-muted hover:text-text-strong";

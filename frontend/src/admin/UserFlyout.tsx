@@ -30,14 +30,14 @@ const QUEUE_MODE_OPTIONS: { mode: QueueAccessMode; label: string }[] = [
 ];
 
 const FIELD_CLASS =
-  "h-9 rounded-[6px] border border-line-control bg-surface-2 px-3 text-sm text-text-strong focus:outline-none focus:ring-1 focus:ring-accent";
+  "h-9 rounded-[6px] bg-surface-2 px-3 text-sm text-text-strong focus:outline-none focus:ring-1 focus:ring-accent";
 const INPUT_CLASS = `mt-1 w-full ${FIELD_CLASS}`;
 const LABEL_CLASS = "block text-sm text-text-muted";
 const ERROR_CLASS = "text-sm text-[color:var(--data-p0-text)]";
 const BUTTON_PRIMARY =
   "rounded-full bg-accent-fill px-4 py-1.5 text-sm font-medium text-text-strong hover:opacity-90 disabled:opacity-50";
 const BUTTON_SECONDARY =
-  "rounded-full border border-line-control px-4 py-1.5 text-sm text-text hover:bg-surface-2 hover:text-text-strong";
+  "rounded-full bg-surface-2 px-4 py-1.5 text-sm text-text hover:bg-surface-3 hover:text-text-strong";
 
 interface UserFlyoutProps {
   /** null = usuario nuevo. */
@@ -74,7 +74,7 @@ function DepartmentsCheckboxGroup({
   }
 
   return (
-    <div className="mt-1 max-h-64 space-y-1.5 thin-scroll overflow-y-auto rounded-[6px] border border-line-strong bg-surface-2 p-2.5">
+    <div className="mt-1 max-h-64 space-y-1.5 thin-scroll overflow-y-auto rounded-[6px] bg-surface-2 p-2.5">
       {departments.map((name) => (
         <label key={name} className="flex items-center gap-2 text-sm text-text">
           <input type="checkbox" checked={selected.includes(name)} onChange={() => toggle(name)} className="h-3.5 w-3.5" />
@@ -228,7 +228,7 @@ export function UserFlyout({
           {user && <p className="text-sm text-text-muted">{user.email}</p>}
         </div>
 
-        <div role="tablist" className="flex gap-1 border-b border-line-strong px-4">
+        <div role="tablist" className="flex gap-1 px-4">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -419,7 +419,7 @@ export function UserFlyout({
               {error && <p className={ERROR_CLASS}>{error}</p>}
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-line-strong px-5 py-3">
+            <div className="flex justify-end gap-2 px-5 py-3">
               <button type="button" onClick={onClose} className={BUTTON_SECONDARY}>
                 Cancelar
               </button>

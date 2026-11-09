@@ -219,7 +219,7 @@ export function UsersPage() {
 
   return (
     <div>
-      <div role="tablist" className="flex gap-1 border-b border-line-strong">
+      <div role="tablist" className="flex gap-1">
         {VIEW_TABS.map((t) => (
           <button
             key={t.id}
@@ -238,7 +238,7 @@ export function UsersPage() {
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1 border-b border-line pb-3">
+      <div className="mt-3 flex flex-wrap items-center gap-1 pb-3">
         <button type="button" onClick={() => setFlyout({ user: null, tab: "account" })} className={commandButton}>
           <IconPlus size={15} stroke={2} />
           Agregar usuario
@@ -268,12 +268,12 @@ export function UsersPage() {
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filtrar por nombre"
           aria-label="Filtrar usuarios por nombre"
-          className="h-8 w-56 rounded-[6px] border border-line-control bg-surface-2 px-2.5 text-sm text-text-strong placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+          className="h-8 w-56 rounded-[6px] bg-surface-2 px-2.5 text-sm text-text-strong placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
       {error && (
-        <div className="mt-3 rounded-card border border-line-strong bg-surface-2 px-4 py-2 text-sm text-[color:var(--data-p0-text)]">
+        <div className="mt-3 rounded-card bg-surface-2 px-4 py-2 text-sm text-[color:var(--data-p0-text)]">
           {error}
         </div>
       )}

@@ -24,7 +24,7 @@ interface LegacyTicketsTableProps {
 const PAGE_SIZE = 25;
 
 const selectClasses =
-  "rounded-md border border-line-control bg-surface-2 px-2 py-1.5 text-xs text-text-strong outline-none focus:border-accent-text";
+  "rounded-md bg-surface-2 px-2 py-1.5 text-xs text-text-strong outline-none focus:ring-1 focus:ring-accent";
 
 export function LegacyTicketsTable({ tickets, sites, showOsTicketLink = true }: LegacyTicketsTableProps) {
   const [siteId, setSiteId] = useState<string>("all");
@@ -81,8 +81,8 @@ export function LegacyTicketsTable({ tickets, sites, showOsTicketLink = true }: 
   const visible = filtered.slice(0, visibleCount);
 
   return (
-    <div className="rounded-card border border-line glass">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
+    <div className="rounded-card glass">
+      <div className="flex flex-wrap items-center gap-2 p-3">
         <h3 className="mr-2 text-sm font-bold text-text-strong">Tickets</h3>
 
         <select
@@ -298,11 +298,11 @@ export function LegacyTicketsTable({ tickets, sites, showOsTicketLink = true }: 
       </div>
 
       {visibleCount < filtered.length && (
-        <div className="border-t border-line p-3 text-center">
+        <div className="p-3 text-center">
           <button
             type="button"
             onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-            className="rounded-md border border-line-control px-3 py-1.5 text-xs text-text-strong hover:bg-surface-2"
+            className="rounded-md bg-surface-2 px-3 py-1.5 text-xs text-text-strong hover:bg-surface-3"
           >
             Ver más
           </button>

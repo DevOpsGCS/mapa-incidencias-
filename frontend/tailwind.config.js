@@ -24,7 +24,8 @@ export default {
         card: "8px",
       },
       fontFamily: {
-        sans: ['"DM Sans"', "system-ui", "sans-serif"],
+        sans: ["'Public Sans'", "sans-serif"],
+        display: ["'Public Sans'", "sans-serif"],
         mono: ['"JetBrains Mono"', "monospace"],
       },
     },

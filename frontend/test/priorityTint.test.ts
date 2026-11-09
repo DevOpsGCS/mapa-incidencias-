@@ -26,7 +26,7 @@ describe("priorityTint", () => {
   });
   it("selección inset para filas con scroll", () => {
     expect(SELECTION_STYLE_INSET.background).toBe("var(--surface-3)");
-    expect(SELECTION_STYLE_INSET.boxShadow.startsWith("inset 0 0 0 1px rgba(0,122,252,.6)")).toBe(true);
+    expect(SELECTION_STYLE_INSET.boxShadow.startsWith("inset 0 0 14px")).toBe(true);
   });
   it("rank NaN o infinito se trata como rank 3 (desconocido)", () => {
     expect(priorityTint(NaN, "row")).toBe(priorityTint(3, "row"));
@@ -39,9 +39,9 @@ describe("priorityTint", () => {
 
 describe("glow de selección", () => {
   it("SELECTION_STYLE lleva el glow", () => {
-    expect(SELECTION_STYLE.boxShadow).toBe("0 0 0 1px rgba(0,122,252,.6), 0 0 16px rgba(0,122,252,.25)");
+    expect(SELECTION_STYLE.boxShadow).toBe("0 0 16px rgba(0,122,252,.30)");
   });
   it("SELECTION_STYLE_INSET lleva glow interior", () => {
-    expect(SELECTION_STYLE_INSET.boxShadow).toBe("inset 0 0 0 1px rgba(0,122,252,.6), inset 0 0 12px rgba(0,122,252,.18)");
+    expect(SELECTION_STYLE_INSET.boxShadow).toBe("inset 0 0 14px rgba(0,122,252,.22)");
   });
 });

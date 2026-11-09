@@ -191,7 +191,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
               type="button"
               onClick={onClose}
               onPointerDown={(event) => event.stopPropagation()}
-              className="ml-1 flex-shrink-0 rounded-full border border-line-control px-3 py-1 text-xs text-text transition-colors hover:text-text-strong"
+              className="ml-1 flex-shrink-0 rounded-full bg-surface-2 px-3 py-1 text-xs text-text transition-colors hover:text-text-strong"
             >
               Cerrar
             </button>

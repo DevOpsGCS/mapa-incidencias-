@@ -84,7 +84,7 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
   const stateTag = (name: string, color: string) => (
     <span
       className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-      style={{ color, background: "var(--glass-bg)", border: `1px solid ${color}` }}
+      style={{ color, background: "var(--glass-bg)" }}
     >
       {name}
     </span>

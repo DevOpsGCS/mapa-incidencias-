@@ -59,7 +59,7 @@ export function TopBar({
             onClick={onOpenAdmin}
             aria-label="Acceso administrador"
             title="Acceso administrador"
-            className="flex h-9 w-9 items-center justify-center rounded-[6px] border border-line-control text-text transition-colors hover:text-text-strong"
+            className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-surface-2 text-text transition-colors hover:text-text-strong"
           >
             <IconChevronRight size={16} stroke={2} />
           </button>
@@ -69,7 +69,7 @@ export function TopBar({
           onClick={onLogout}
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
-          className="flex h-9 w-9 items-center justify-center rounded-[6px] border border-line-control text-text transition-colors hover:text-text-strong"
+          className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-surface-2 text-text transition-colors hover:text-text-strong"
         >
           <IconLogout size={16} stroke={2} />
         </button>
@@ -92,10 +92,10 @@ function ViewButton({
       type="button"
       onClick={onClick}
       style={active ? { boxShadow: "var(--glow-select)" } : undefined}
-      className={`rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+      className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
         active
-          ? "border-accent-fill bg-accent-fill text-text-strong"
-          : "border-line-control text-text hover:text-text-strong"
+          ? "bg-accent-fill text-text-strong"
+          : "bg-surface-2 text-text hover:bg-surface-3 hover:text-text-strong"
       }`}
     >
       {children}

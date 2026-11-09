@@ -83,10 +83,10 @@ function GlobalSearch() {
           if (e.key === "Enter" && results[0]) go(results[0].kind, results[0].id);
           if (e.key === "Escape") setOpen(false);
         }}
-        className="h-8 w-full rounded-[6px] border border-line-control bg-surface-2 pl-8 pr-2 text-sm text-text-strong placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+        className="h-8 w-full rounded-[6px] bg-surface-2 pl-8 pr-2 text-sm text-text-strong placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
       />
       {open && query.trim() !== "" && (
-        <ul className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-card border border-line-strong bg-surface-2">
+        <ul className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-card bg-surface-2">
           {results.length === 0 ? (
             <li className="px-3 py-2 text-sm text-text-muted">Sin resultados</li>
           ) : (
@@ -121,7 +121,7 @@ export function AdminLayout({ title, crumbs, children }: AdminLayoutProps) {
 
   return (
     <div className="app-backdrop min-h-screen text-text">
-      <header className="fixed inset-x-0 top-0 z-20 flex h-11 items-center gap-4 border-b border-line glass px-4">
+      <header className="fixed inset-x-0 top-0 z-20 flex h-11 items-center gap-4 glass px-4">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Global Customs Solutions" className="h-6 w-auto" />
           <span className="text-sm text-text-strong">Administración · Mapa de Incidencias</span>
@@ -148,7 +148,7 @@ export function AdminLayout({ title, crumbs, children }: AdminLayoutProps) {
 
       <nav
         aria-label="Navegación de administración"
-        className="fixed bottom-0 left-0 top-11 z-10 w-[210px] thin-scroll overflow-y-auto border-r border-line glass px-2 py-3"
+        className="fixed bottom-0 left-0 top-11 z-10 w-[210px] thin-scroll overflow-y-auto glass px-2 py-3"
       >
         {ADMIN_NAV.map((group, gi) => (
           <div key={group.group ?? `g${gi}`} className={gi > 0 ? "mt-4" : ""}>

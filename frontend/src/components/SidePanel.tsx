@@ -24,8 +24,8 @@ export function SidePanel({ open, onClose, width = 440, label = "Detalle del tic
   if (!open) return null;
   return (
     <aside
-      className="fixed bottom-0 right-0 top-0 z-40 flex max-w-full flex-col border-l border-line-strong glass"
-      style={{ width, boxShadow: "var(--glass-edge), -20px 0 40px rgba(0,0,0,.5)" }}
+      className="fixed bottom-0 right-0 top-0 z-40 flex max-w-full flex-col glass"
+      style={{ width, boxShadow: "-20px 0 40px rgba(0,0,0,.5)" }}
       aria-label={label}
     >
       <div className="flex justify-end p-2">

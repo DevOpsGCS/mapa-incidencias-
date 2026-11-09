@@ -37,9 +37,8 @@
   /* Vidrio + glow (spec §2.6). El vidrio se aplica con la clase .glass. */
   --glass-bg: rgba(21, 23, 27, 0.72);
   --glass-blur: blur(12px) saturate(120%);
-  --glass-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-  --glow-select: 0 0 0 1px rgba(0, 122, 252, 0.6), 0 0 16px rgba(0, 122, 252, 0.25);
+  --glow-select: 0 0 16px rgba(0, 122, 252, 0.30);
   --glow-critical: 0 0 18px rgba(255, 77, 109, 0.25);
 
   color-scheme: dark;
@@ -67,7 +66,7 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: "Public Sans", sans-serif;
 }
 
 /* Vidrio translúcido: paneles flotantes y tarjetas (no la página de fondo).
@@ -76,7 +75,7 @@ body {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-edge), var(--glass-shadow);
+  box-shadow: var(--glass-shadow);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -215,7 +214,6 @@ input[type="radio"] {
 .leaflet-popup-tip {
   background: var(--surface-1);
   color: var(--text);
-  border: 1px solid var(--line-strong);
 }
 
 .leaflet-control-attribution {

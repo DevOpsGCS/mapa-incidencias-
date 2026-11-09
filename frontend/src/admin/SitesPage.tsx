@@ -30,14 +30,14 @@ const GRID_CONFIGURED = "grid grid-cols-[28px_minmax(160px,1.6fr)_minmax(140px,1
 const GRID_UNMAPPED = "grid grid-cols-[28px_minmax(160px,1.6fr)_minmax(140px,1fr)] items-center gap-3";
 
 const FIELD_CLASS =
-  "h-9 rounded-[6px] border border-line-control bg-surface-2 px-3 text-sm text-text-strong focus:outline-none focus:ring-1 focus:ring-accent";
+  "h-9 rounded-[6px] bg-surface-2 px-3 text-sm text-text-strong focus:outline-none focus:ring-1 focus:ring-accent";
 const INPUT_CLASS = `mt-1 w-full ${FIELD_CLASS}`;
 const LABEL_CLASS = "block text-sm text-text-muted";
 const ERROR_CLASS = "text-sm text-[color:var(--data-p0-text)]";
 const BUTTON_PRIMARY =
   "rounded-full bg-accent-fill px-4 py-1.5 text-sm font-medium text-text-strong hover:opacity-90 disabled:opacity-50";
 const BUTTON_SECONDARY =
-  "rounded-full border border-line-control px-4 py-1.5 text-sm text-text hover:bg-surface-2 hover:text-text-strong";
+  "rounded-full bg-surface-2 px-4 py-1.5 text-sm text-text hover:bg-surface-3 hover:text-text-strong";
 const COMMAND_BUTTON =
   "inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-sm text-text transition-colors hover:bg-surface-2 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text";
 
@@ -70,7 +70,7 @@ function SiteFlyout({ form, onChange, onClose, onSubmit, error, saving }: SiteFl
         <div className="px-5 pb-3">
           <h2 className="text-lg font-medium text-text-strong">{form.label}</h2>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 thin-scroll overflow-y-auto border-t border-line-strong px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-4 thin-scroll overflow-y-auto px-5 py-4">
           <label className={LABEL_CLASS}>
             Tipo
             <select
@@ -112,7 +112,7 @@ function SiteFlyout({ form, onChange, onClose, onSubmit, error, saving }: SiteFl
           </div>
           {error && <p className={ERROR_CLASS}>{error}</p>}
         </div>
-        <div className="flex justify-end gap-2 border-t border-line-strong px-5 py-3">
+        <div className="flex justify-end gap-2 px-5 py-3">
           <button type="button" onClick={onClose} className={BUTTON_SECONDARY}>
             Cancelar
           </button>
@@ -337,7 +337,7 @@ export function SitesPage() {
 
   return (
     <div>
-      <div role="tablist" className="flex gap-1 border-b border-line-strong">
+      <div role="tablist" className="flex gap-1">
         {VIEW_TABS.map((t) => (
           <button
             key={t.id}
@@ -359,7 +359,7 @@ export function SitesPage() {
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1 border-b border-line pb-3">
+      <div className="mt-3 flex flex-wrap items-center gap-1 pb-3">
         <button
           type="button"
           disabled={!assignTarget}
@@ -384,12 +384,12 @@ export function SitesPage() {
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filtrar por nombre"
           aria-label="Filtrar sitios por nombre"
-          className="h-8 w-56 rounded-[6px] border border-line-control bg-surface-2 px-2.5 text-sm text-text-strong placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+          className="h-8 w-56 rounded-[6px] bg-surface-2 px-2.5 text-sm text-text-strong placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
       {error && (
-        <div className="mt-3 rounded-card border border-line-strong bg-surface-2 px-4 py-2 text-sm text-[color:var(--data-p0-text)]">
+        <div className="mt-3 rounded-card bg-surface-2 px-4 py-2 text-sm text-[color:var(--data-p0-text)]">
           {error}
         </div>
       )}

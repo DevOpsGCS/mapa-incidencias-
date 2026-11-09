@@ -59,7 +59,7 @@ export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = fals
             item.alarm
               ? {
                   backgroundImage: priorityTint(0, "card"),
-                  boxShadow: "var(--glass-edge), var(--glass-shadow), var(--glow-critical)",
+                  boxShadow: "var(--glass-shadow), var(--glow-critical)",
                 }
               : undefined
           }

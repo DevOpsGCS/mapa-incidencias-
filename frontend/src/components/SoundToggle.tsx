@@ -20,7 +20,7 @@ export function SoundToggle() {
       aria-label={muted ? "Activar sonido de notificaciones" : "Silenciar sonido de notificaciones"}
       aria-pressed={!muted}
       title={muted ? "Sonido desactivado" : "Sonido activado"}
-      className={`flex h-9 w-9 items-center justify-center rounded-[6px] border border-line-control transition-colors ${
+      className={`flex h-9 w-9 items-center justify-center rounded-[6px] bg-surface-2 transition-colors ${
         muted ? "text-text" : "text-accent-text"
       }`}
     >

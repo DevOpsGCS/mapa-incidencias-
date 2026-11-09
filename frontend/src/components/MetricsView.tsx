@@ -103,7 +103,7 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
               value={range}
               onChange={(e) => setRange(Number(e.target.value) as DateRange)}
               aria-label="Rango de fechas"
-              className="rounded-md border border-line-control bg-surface-2 px-3 py-1.5 text-xs text-text-strong"
+              className="rounded-md bg-surface-2 px-3 py-1.5 text-xs text-text-strong"
             >
               {RANGE_OPTIONS.map((days) => (
                 <option key={days} value={days}>
@@ -114,14 +114,14 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
             <button
               type="button"
               onClick={exportCsv}
-              className="rounded-md border border-line-control px-3 py-1.5 text-xs text-text-strong hover:bg-surface-2"
+              className="rounded-md bg-surface-2 px-3 py-1.5 text-xs text-text-strong hover:bg-surface-3"
             >
               Exportar CSV
             </button>
             <button
               type="button"
               onClick={onRefresh}
-              className="rounded-md border border-line-control px-3 py-1.5 text-xs text-text-strong hover:bg-surface-2"
+              className="rounded-md bg-surface-2 px-3 py-1.5 text-xs text-text-strong hover:bg-surface-3"
             >
               Actualizar
             </button>
@@ -142,13 +142,13 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
         </section>
 
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <div className="rounded-card border border-line glass p-4">
+          <div className="rounded-card glass p-4">
             <PanelHeader title="Tickets actuales por estado" onDetails={() => onShowDetails({})} />
             <div className="mt-2">
               <StatusChart stats={stats} onSelectState={(stateType) => onShowDetails({ stateType })} />
             </div>
           </div>
-          <div className="rounded-card border border-line glass p-4">
+          <div className="rounded-card glass p-4">
             <PanelHeader
               title={`Tickets creados (${range} días)`}
               onDetails={() => onShowDetails({ createdInRangeOnly: true })}

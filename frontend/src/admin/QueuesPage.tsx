@@ -47,7 +47,7 @@ export function QueuesPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1 border-b border-line pb-3">
+      <div className="flex flex-wrap items-center gap-1 pb-3">
         <button
           type="button"
           onClick={() => load()}
@@ -62,7 +62,7 @@ export function QueuesPage() {
       </div>
 
       {error && (
-        <div className="mt-3 rounded-card border border-line-strong bg-surface-2 px-4 py-2 text-sm text-[color:var(--data-p0-text)]">
+        <div className="mt-3 rounded-card bg-surface-2 px-4 py-2 text-sm text-[color:var(--data-p0-text)]">
           {error}
         </div>
       )}

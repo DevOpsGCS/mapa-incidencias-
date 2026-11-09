@@ -11,10 +11,10 @@ interface ReportCardProps {
 export function ReportCard({ title, value, hint, tint, critical }: ReportCardProps) {
   return (
     <div
-      className="rounded-card border border-line glass p-4"
+      className="rounded-card glass p-4"
       style={{
         ...(tint ? { backgroundImage: tint } : {}),
-        ...(critical ? { boxShadow: "var(--glass-edge), var(--glass-shadow), var(--glow-critical)" } : {}),
+        ...(critical ? { boxShadow: "var(--glass-shadow), var(--glow-critical)" } : {}),
       }}
     >
       <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-label">{title}</div>

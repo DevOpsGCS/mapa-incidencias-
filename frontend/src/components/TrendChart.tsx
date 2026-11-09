@@ -44,7 +44,6 @@ export function TrendChart({ data }: TrendChartProps) {
             cursor={{ stroke: UI_HEX.axis, strokeWidth: 1 }}
             contentStyle={{
               background: UI_HEX.tooltipBg,
-              border: `1px solid ${UI_HEX.tooltipBorder}`,
               borderRadius: 8,
               color: UI_HEX.tooltipText,
               fontSize: 12,

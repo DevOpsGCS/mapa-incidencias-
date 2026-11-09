@@ -75,7 +75,7 @@ describe("tokens de color", () => {
 });
 
 describe("tokens de vidrio y glow", () => {
-  it.each(["--glass-bg", "--glass-blur", "--glass-edge", "--glass-shadow", "--glow-select", "--glow-critical"])("define %s", (n) => {
+  it.each(["--glass-bg", "--glass-blur", "--glass-shadow", "--glow-select", "--glow-critical"])("define %s", (n) => {
     expect(vars[n]).toBeTruthy();
   });
   it("define .glass, .app-backdrop y el fallback sólido", () => {
