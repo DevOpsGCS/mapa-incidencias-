@@ -2,6 +2,7 @@ import type { Server } from "socket.io";
 import { znunyReadOnlyQuery } from "../znuny/db";
 import { roomsForTicketQueue } from "../znuny/queueAccess";
 import { findTicketsByIds } from "../znuny/ticketsRepository";
+import { recordPollerError, recordPollerOk } from "./pollerStatus";
 import { parseStateUpdate } from "./pollerLogic";
 
 const POLL_INTERVAL_MS = 20_000;
@@ -59,8 +60,10 @@ export function startZnunyStatePoller(io: Server): void {
       } else {
         await runStateCycle(io, state);
       }
+      recordPollerOk("states");
     } catch (err) {
       console.error("[znuny-poller] error en el ciclo de estados:", err);
+      recordPollerError("states", err instanceof Error ? err.message : String(err));
     }
     setTimeout(tick, POLL_INTERVAL_MS);
   };

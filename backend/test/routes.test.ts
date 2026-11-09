@@ -28,6 +28,7 @@ const m = vi.hoisted(() => ({
   getSnapshotDepartments: vi.fn(),
   readOnlyQuery: vi.fn(),
   disconnectUserSockets: vi.fn(),
+  znunyQuery: vi.fn(),
 }));
 
 vi.mock("../src/repositories/usersRepository", () => ({ usersRepository: m.users }));
@@ -47,6 +48,10 @@ vi.mock("../src/sockets/io", () => ({
   disconnectUserSockets: m.disconnectUserSockets,
   setIo: vi.fn(),
   userRoom: (u: string) => `user:${u}`,
+}));
+vi.mock("../src/znuny/db", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/znuny/db")>()),
+  znunyReadOnlyQuery: m.znunyQuery,
 }));
 vi.mock("../src/legacy/osticket/db", () => ({ readOnlyQuery: m.readOnlyQuery }));
 
@@ -365,5 +370,45 @@ describe("osTicket apagado (OSTICKET_SOURCE=snapshot)", () => {
     expect(legacy.body).toEqual({ error: "Histórico de osTicket no disponible" });
     const deps = await request(app).get("/api/admin/departments").set("Cookie", admin);
     expect(deps.status).toBe(503);
+  });
+});
+
+describe("GET /api/admin/status", () => {
+  const admin = cookie("root", "admin");
+
+  it("usuario normal -> 403", async () => {
+    const res = await request(app).get("/api/admin/status").set("Cookie", cookie("ana", "normal"));
+    expect(res.status).toBe(403);
+  });
+
+  it("túnel caído -> 200 con ok:false, sin latencia y con el error", async () => {
+    m.znunyQuery.mockRejectedValue(new ZnunyUnavailableError("connect ECONNREFUSED"));
+    m.getLegacyMeta.mockResolvedValue({ source: "live", frozenAt: null, total: 5 });
+    const res = await request(app).get("/api/admin/status").set("Cookie", admin);
+    expect(res.status).toBe(200);
+    expect(res.body.serviceDesk.ok).toBe(false);
+    expect(res.body.serviceDesk.latencyMs).toBeNull();
+    expect(res.body.serviceDesk.lastError).toContain("ECONNREFUSED");
+  });
+
+  it("consulta OK -> ok:true y latencia >= 0", async () => {
+    m.znunyQuery.mockResolvedValue([{ ok: 1 }]);
+    m.getLegacyMeta.mockResolvedValue({ source: "snapshot", frozenAt: "2026-11-09T00:00:00Z", total: 7 });
+    const res = await request(app).get("/api/admin/status").set("Cookie", admin);
+    expect(res.status).toBe(200);
+    expect(res.body.serviceDesk.ok).toBe(true);
+    expect(res.body.serviceDesk.latencyMs).toBeGreaterThanOrEqual(0);
+    expect(res.body.legacy).toEqual({ source: "snapshot", frozenAt: "2026-11-09T00:00:00Z", total: 7 });
+    expect(typeof res.body.server.version).toBe("string");
+    expect(typeof res.body.server.startedAt).toBe("string");
+    expect(res.body.serviceDesk.ticketPoller).toHaveProperty("lastOkAt");
+  });
+
+  it("getLegacyMeta lanza -> 200 con total null", async () => {
+    m.znunyQuery.mockResolvedValue([{ ok: 1 }]);
+    m.getLegacyMeta.mockRejectedValue(new Error("osTicket caído"));
+    const res = await request(app).get("/api/admin/status").set("Cookie", admin);
+    expect(res.status).toBe(200);
+    expect(res.body.legacy).toEqual({ source: "live", frozenAt: null, total: null });
   });
 });

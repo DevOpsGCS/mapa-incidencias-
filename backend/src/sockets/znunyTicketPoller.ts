@@ -2,6 +2,7 @@ import type { Server } from "socket.io";
 import { znunyReadOnlyQuery } from "../znuny/db";
 import { roomsForTicketQueue } from "../znuny/queueAccess";
 import { findTicketsByIds } from "../znuny/ticketsRepository";
+import { recordPollerError, recordPollerOk } from "./pollerStatus";
 import { removalRooms, selectChanged } from "./pollerLogic";
 
 const POLL_INTERVAL_MS = 20_000;
@@ -99,6 +100,7 @@ export async function runTicketCycle(io: Server, state: TicketPollerState): Prom
   state.queues = nextQueues;
 
   io.emit("sync:heartbeat", { at: new Date().toISOString(), ok: true, checked: ids.size });
+  recordPollerOk("tickets");
 }
 
 export function startZnunyTicketPoller(io: Server): void {
@@ -114,6 +116,7 @@ export function startZnunyTicketPoller(io: Server): void {
       }
     } catch (err) {
       console.error("[znuny-poller] error en el ciclo de tickets:", err);
+      recordPollerError("tickets", err instanceof Error ? err.message : String(err));
       // Latido igual (ok:false): el backend sigue vivo aunque Znuny no. Sin
       // esto el watchdog de las TVs reconectaría en bucle con el túnel caído.
       io.emit("sync:heartbeat", { at: new Date().toISOString(), ok: false });

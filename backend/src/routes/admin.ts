@@ -1,13 +1,15 @@
 import { NextFunction, Response, Router } from "express";
 import { readOnlyQuery } from "../legacy/osticket/db";
-import { getLegacySourceKind, getSnapshotDepartments } from "../legacy/osticket/source";
+import { getLegacyMeta, getLegacySourceKind, getSnapshotDepartments } from "../legacy/osticket/source";
 import { requireRole } from "../auth";
 import { normalizeName } from "../lib/normalizeName";
 import { respondLegacyDbError } from "../lib/legacyErrors";
 import { disconnectUserSockets } from "../sockets/io";
 import { respondZnunyError } from "../lib/znunyErrors";
 import { getCatalog, getSiteOptions } from "../znuny/catalogRepository";
-import { ZnunyUnavailableError } from "../znuny/db";
+import { execSync } from "child_process";
+import { getPollerStatus, sanitizeError } from "../sockets/pollerStatus";
+import { ZnunyUnavailableError, znunyReadOnlyQuery } from "../znuny/db";
 import { sitesRepository } from "../repositories/sitesRepository";
 import { usersRepository } from "../repositories/usersRepository";
 import { Role, SiteType } from "../types";
@@ -17,6 +19,57 @@ export const adminRouter = Router();
 // Todo lo registrado en este router exige sesión con rol admin — el login
 // para cualquier usuario (admin o normal) vive en routes/auth.ts.
 adminRouter.use(requireRole("admin"));
+
+// Versión y arranque: se calculan una sola vez al cargar el módulo.
+const STARTED_AT = new Date().toISOString();
+const APP_VERSION = (() => {
+  if (process.env.APP_VERSION) return process.env.APP_VERSION;
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim() || "desconocida";
+  } catch {
+    return "desconocida";
+  }
+})();
+
+const STATUS_PING_TIMEOUT_MS = 3000;
+
+// Estado de conexión para el panel admin. Nunca responde 500: un túnel caído
+// es justo lo que esta ruta debe poder informar.
+adminRouter.get("/status", async (_req, res) => {
+  let ok = false;
+  let latencyMs: number | null = null;
+  let lastError: string | null = null;
+  const t0 = Date.now();
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([
+      znunyReadOnlyQuery("SELECT 1"),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Tiempo de espera agotado (3 s)")), STATUS_PING_TIMEOUT_MS);
+      }),
+    ]);
+    ok = true;
+    latencyMs = Date.now() - t0;
+  } catch (err) {
+    lastError = sanitizeError(err instanceof Error ? err.message : String(err));
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+
+  let legacy: { source: "live" | "snapshot"; frozenAt: string | null; total: number | null };
+  try {
+    legacy = await getLegacyMeta();
+  } catch {
+    legacy = { source: getLegacySourceKind(), frozenAt: null, total: null };
+  }
+
+  const pollers = getPollerStatus();
+  res.json({
+    serviceDesk: { ok, latencyMs, lastError, ticketPoller: pollers.tickets, statePoller: pollers.states },
+    legacy,
+    server: { version: APP_VERSION, startedAt: STARTED_AT },
+  });
+});
 
 const VALID_SITE_TYPES: SiteType[] = ["aduana_terrestre", "aduana_maritima", "aduana_aerea", "sede"];
 const VALID_ROLES: Role[] = ["admin", "normal"];
