@@ -38,7 +38,7 @@ export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = fals
   ];
 
   return (
-    <div className="hud-scale fixed left-5 top-[78px] z-10 flex w-[190px] flex-col gap-2">
+    <div data-kpi-dock className="hud-scale fixed left-5 top-[78px] z-10 flex w-[190px] flex-col gap-2">
       <div className="relative z-20 rounded-panel glass px-3.5 py-3">
         <div className="flex items-center justify-between">
           <p className="mono-label text-[11px] tracking-[0.12em] text-text-label">Cola</p>

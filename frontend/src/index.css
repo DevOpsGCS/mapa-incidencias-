@@ -98,20 +98,11 @@ body {
   }
 }
 
-/* Alias de .glass con radio 20. */
+/* Alias de .glass (mismos valores, una sola fuente) con radio 20. */
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-edge), var(--glass-shadow);
+  @apply glass;
   border: none;
   border-radius: 20px;
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-panel {
-    background: var(--surface-1);
-  }
 }
 
 /* Fondo de las páginas sin mapa (Métricas, Administración, Histórico): degradado
@@ -123,15 +114,20 @@ body {
     var(--bg);
 }
 
-/* Filas del panel del sitio (D1): el título nunca baja de 220 px; por debajo de
-   1600 px de ventana se oculta Propietario y se achican cola y estado. */
+/* Filas del panel del sitio (D1): el layout depende del ancho de la propia lista
+   (container query), no de la ventana, porque el panel va dentro de .hud-scale (zoom en TV).
+   El título nunca baja de 220 px; Propietario solo aparece si la lista es ancha. */
+.site-list {
+  container-type: inline-size;
+  container-name: site-list;
+}
 .site-row {
   grid-template-columns: minmax(220px, 1fr) 110px 110px 36px;
 }
 .site-row-owner {
   display: none;
 }
-@media (min-width: 1600px) {
+@container site-list (min-width: 720px) {
   .site-row {
     grid-template-columns: minmax(220px, 1fr) 150px 110px 120px 40px;
   }

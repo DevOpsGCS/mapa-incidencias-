@@ -26,16 +26,27 @@ const MIN_DRAG_HEIGHT = 120; // piso visual mientras se arrastra hacia abajo
 const CLOSE_HEIGHT_THRESHOLD = 160; // al soltar por debajo de esto, cierra
 const EXPAND_MARGIN = 40; // al soltar 40 px por encima de la altura inicial, queda expandida
 const INITIAL_VH = 0.38;
-// D2: la pila de KPIs (selector + 4 tarjetas) llega hasta ~510 px desde arriba a 768 px de alto;
-// la altura inicial se limita para que el panel no tape la última tarjeta (Tendencia).
+// D2: la altura inicial se limita para no tapar la última tarjeta de KPIs (Tendencia). El borde
+// inferior del dock se mide en vivo (`data-kpi-dock`); KPI_STACK_BOTTOM es solo el respaldo.
 const KPI_STACK_BOTTOM = 520;
 const KPI_CLEARANCE = 12;
 const MIN_COMPACT_HEIGHT = 200;
 
+/** Factor de zoom de `.hud-scale` (TV); las alturas inline del panel se multiplican por él. */
+function hudZoom(): number {
+  const z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hud-zoom"));
+  return Number.isFinite(z) && z > 0 ? z : 1;
+}
+
+/** Altura inicial en px locales del panel (ya divididos por el zoom): min(38vh, espacio bajo los KPIs). */
 function initialHeight(): number {
   if (typeof window === "undefined") return 300;
-  const byRatio = Math.round(window.innerHeight * INITIAL_VH);
-  const belowKpis = window.innerHeight - KPI_STACK_BOTTOM - PANEL_BOTTOM_OFFSET - KPI_CLEARANCE;
+  const zoom = hudZoom();
+  const viewport = window.innerHeight / zoom;
+  const dock = document.querySelector("[data-kpi-dock]");
+  const kpiBottom = dock ? dock.getBoundingClientRect().bottom / zoom : KPI_STACK_BOTTOM;
+  const byRatio = Math.round(viewport * INITIAL_VH);
+  const belowKpis = Math.floor(viewport - kpiBottom - PANEL_BOTTOM_OFFSET - KPI_CLEARANCE);
   return Math.max(MIN_COMPACT_HEIGHT, Math.min(byRatio, belowKpis));
 }
 
@@ -46,6 +57,13 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
+  // Recalcula al redimensionar la ventana (y por tanto el zoom de la TV).
+  const [, setResizeTick] = useState(0);
+  useEffect(() => {
+    const onResize = () => setResizeTick((n) => n + 1);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const compactHeight = initialHeight();
   const dragStartHeight = useRef(compactHeight);
 
@@ -191,7 +209,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
         className="grid min-h-0 flex-1 gap-3"
         style={{ gridTemplateColumns: siteTickets.length === 0 ? "1fr" : "3fr 2fr" }}
       >
-        <div className="thin-scroll min-h-0 overflow-y-auto">
+        <div className="site-list thin-scroll min-h-0 overflow-y-auto">
           {siteTickets.length === 0 ? (
             <p className="py-6 text-center text-sm text-text-muted">Sin tickets con este filtro</p>
           ) : (
@@ -239,7 +257,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
 
         {/* Con la lista vacía el aviso ya está a la izquierda: el detalle no lo repite. */}
         {siteTickets.length > 0 && (
-          <div className="min-h-0 overflow-hidden rounded-xl glass">
+          <div className="min-h-0 overflow-hidden rounded-xl bg-surface-2">
             <TicketDetail ticket={selected} catalog={catalog} />
           </div>
         )}
