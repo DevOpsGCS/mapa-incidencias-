@@ -15,9 +15,18 @@ let status: Record<PollerName, PollerStatus> = { tickets: empty(), states: empty
 /** Quita credenciales del mensaje y lo trunca a 200 caracteres. */
 export function sanitizeError(message: string): string {
   let out = String(message ?? "");
-  const secret = process.env.ZNUNY_DB_PASSWORD;
-  if (secret) out = out.split(secret).join("***");
-  out = out.replace(/(password|user)\s*=\s*\S+/gi, "$1=***");
+  // Valores reales de la configuración (se omiten los vacíos).
+  for (const secret of [
+    process.env.ZNUNY_DB_PASSWORD,
+    process.env.ZNUNY_DB_USER,
+    process.env.ZNUNY_DB_HOST,
+  ]) {
+    if (secret) out = out.split(secret).join("***");
+  }
+  out = out
+    .replace(/user\s+'[^']*'(@'[^']*')?/gi, "user '***'")
+    .replace(/using password:\s*\w+/gi, "using password: ***")
+    .replace(/(password|user)\s*=\s*\S+/gi, "$1=***");
   return out.slice(0, 200);
 }
 

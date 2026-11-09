@@ -376,6 +376,23 @@ describe("osTicket apagado (OSTICKET_SOURCE=snapshot)", () => {
 describe("GET /api/admin/status", () => {
   const admin = cookie("root", "admin");
 
+  it("sin sesión -> 401", async () => {
+    const res = await request(app).get("/api/admin/status");
+    expect(res.status).toBe(401);
+  });
+
+  it("la consulta no responde -> 200 con ok:false y error de timeout", async () => {
+    process.env.STATUS_PING_TIMEOUT_MS = "50";
+    m.znunyQuery.mockReturnValue(new Promise(() => {}));
+    m.getLegacyMeta.mockResolvedValue({ source: "live", frozenAt: null, total: 1 });
+    const res = await request(app).get("/api/admin/status").set("Cookie", admin);
+    delete process.env.STATUS_PING_TIMEOUT_MS;
+    expect(res.status).toBe(200);
+    expect(res.body.serviceDesk.ok).toBe(false);
+    expect(res.body.serviceDesk.latencyMs).toBeNull();
+    expect(res.body.serviceDesk.lastError).toMatch(/Tiempo de espera/);
+  });
+
   it("usuario normal -> 403", async () => {
     const res = await request(app).get("/api/admin/status").set("Cookie", cookie("ana", "normal"));
     expect(res.status).toBe(403);

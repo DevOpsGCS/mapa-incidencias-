@@ -31,7 +31,8 @@ const APP_VERSION = (() => {
   }
 })();
 
-const STATUS_PING_TIMEOUT_MS = 3000;
+// Inyectable por entorno para poder probar el timeout sin esperar 3 s.
+const statusPingTimeoutMs = () => Number(process.env.STATUS_PING_TIMEOUT_MS) || 3000;
 
 // Estado de conexión para el panel admin. Nunca responde 500: un túnel caído
 // es justo lo que esta ruta debe poder informar.
@@ -45,7 +46,10 @@ adminRouter.get("/status", async (_req, res) => {
     await Promise.race([
       znunyReadOnlyQuery("SELECT 1"),
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error("Tiempo de espera agotado (3 s)")), STATUS_PING_TIMEOUT_MS);
+        timer = setTimeout(
+          () => reject(new Error(`Tiempo de espera agotado (${statusPingTimeoutMs()} ms)`)),
+          statusPingTimeoutMs()
+        );
       }),
     ]);
     ok = true;

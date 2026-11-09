@@ -111,6 +111,7 @@ export function startZnunyTicketPoller(io: Server): void {
       if (!state) {
         state = await initTicketPollerState();
         console.log(`[znuny-poller] tickets iniciado (lastId=${state.lastId})`);
+        recordPollerOk("tickets");
       } else {
         await runTicketCycle(io, state);
       }

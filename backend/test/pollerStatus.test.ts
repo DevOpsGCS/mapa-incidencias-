@@ -42,4 +42,22 @@ describe("pollerStatus", () => {
     recordPollerError("states", "bad password=zzz");
     expect(getPollerStatus().states.lastError).not.toContain("zzz");
   });
+
+  it("sanitizeError oculta usuario y host del error real de MySQL", () => {
+    const msg = "Access denied for user 'dashboard_ro'@'127.0.0.1' (using password: YES)";
+    const out = sanitizeError(msg);
+    expect(out).not.toContain("dashboard_ro");
+    expect(out).not.toContain("127.0.0.1");
+    expect(out).not.toContain("YES");
+  });
+
+  it("sanitizeError oculta los valores de ZNUNY_DB_USER y ZNUNY_DB_HOST", () => {
+    process.env.ZNUNY_DB_USER = "ro_user_x";
+    process.env.ZNUNY_DB_HOST = "db.interno.example";
+    const out = sanitizeError("connect ETIMEDOUT db.interno.example as ro_user_x");
+    delete process.env.ZNUNY_DB_USER;
+    delete process.env.ZNUNY_DB_HOST;
+    expect(out).not.toContain("db.interno.example");
+    expect(out).not.toContain("ro_user_x");
+  });
 });
