@@ -56,3 +56,12 @@ describe("COLUMN_LABELS", () => {
     for (const id of DEFAULT_COLUMNS) expect(COLUMN_LABELS[id]).toBeTruthy();
   });
 });
+
+describe("loadColumns incluye title", () => {
+  it("agrega title si la lista guardada no lo tiene", () => {
+    expect(loadColumns({ getItem: () => '["tn","queue"]' })).toEqual(["tn", "title", "queue"]);
+  });
+  it("no lo duplica si ya está", () => {
+    expect(loadColumns({ getItem: () => '["title","tn"]' })).toEqual(["title", "tn"]);
+  });
+});

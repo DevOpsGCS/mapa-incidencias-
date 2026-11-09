@@ -49,7 +49,9 @@ export function loadColumns(storage: Pick<Storage, "getItem"> | null): ColumnId[
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return DEFAULT_COLUMNS;
     const cols = parsed.filter(isColumnId);
-    return cols.length > 0 ? cols : DEFAULT_COLUMNS;
+    if (cols.length === 0) return DEFAULT_COLUMNS;
+    // El título siempre se muestra: es la columna que da sentido a la fila.
+    return cols.includes("title") ? cols : [cols[0], "title", ...cols.slice(1)];
   } catch {
     return DEFAULT_COLUMNS;
   }

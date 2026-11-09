@@ -13,6 +13,17 @@ function isSameOrDescendant(name: string, ancestor: string): boolean {
   return name === ancestor || name.startsWith(`${ancestor}::`);
 }
 
+/** Orden de árbol: compara segmento a segmento (`A` < `A::C` < `A B`), no por el nombre completo. */
+function compareBySegments(a: QueueAccessRow, b: QueueAccessRow): number {
+  const sa = a.name.split("::");
+  const sb = b.name.split("::");
+  for (let i = 0; i < Math.min(sa.length, sb.length); i++) {
+    const c = sa[i].localeCompare(sb[i]);
+    if (c !== 0) return c;
+  }
+  return sa.length - sb.length;
+}
+
 /** Por cola válida del catálogo: tickets abiertos (incluye subcolas) y usuarios que la ven (todas, exacta o por ancestro). */
 export function queueAccessCounts(
   queues: Catalog["queues"],
@@ -30,5 +41,5 @@ export function queueAccessCounts(
         (u) => u.allowedQueues !== null && (u.allowedQueues.length === 0 || u.allowedQueues.some((a) => isSameOrDescendant(q.name, a)))
       ).length,
     }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort(compareBySegments);
 }

@@ -27,6 +27,8 @@ function formatCsvDate(iso: string): string {
 
 /** Escape RFC 4180: comillas si hay coma, comilla o salto de línea. */
 function escapeCell(value: string): string {
+  // Neutraliza fórmulas (CSV injection): Excel evalúa celdas que empiezan con = + - @ TAB o CR.
+  if (/^[=+\-@\t\r]/.test(value)) value = `'${value}`;
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 

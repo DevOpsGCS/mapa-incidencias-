@@ -35,3 +35,17 @@ describe("pickSelected", () => {
     expect(pickSelected([], 1)).toBeNull();
   });
 });
+
+describe("pickSelected prefiere abiertos", () => {
+  const closed = (id: number) => ({ id, stateType: "closed" }) as Ticket;
+  const open = (id: number) => ({ id, stateType: "open" }) as Ticket;
+  it("sin selección elige el primer ticket abierto", () => {
+    expect(pickSelected([closed(1), open(2), open(3)], null)?.id).toBe(2);
+  });
+  it("si no hay abiertos, el primero", () => {
+    expect(pickSelected([closed(1), closed(2)], null)?.id).toBe(1);
+  });
+  it("la selección visible gana aunque esté cerrada", () => {
+    expect(pickSelected([open(1), closed(2)], 2)?.id).toBe(2);
+  });
+});

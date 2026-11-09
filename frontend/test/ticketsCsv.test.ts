@@ -48,3 +48,14 @@ describe("csvFileName", () => {
     expect(csvFileName(new Date("2026-11-09T18:05:00Z"))).toBe("tickets-20261109-1205.csv");
   });
 });
+
+describe("neutralización de fórmulas", () => {
+  it.each(["=1+1", "+SUM(A1)", "-2", "@cmd", "\tx", "\rx"])("prefija ' a %j", (v) => {
+    const c = ticketsToCsv([{ ...base, title: v }], ["title"], ctx);
+    expect(c.slice(1).split("\r\n")[1].replace(/^"|"$/g, "")).toBe("'" + v);
+  });
+  it("no toca valores normales ni el Nº", () => {
+    const c = ticketsToCsv([{ ...base, title: "Hola -x" }], ["tn", "title"], ctx);
+    expect(c).toContain("2026110001,Hola -x");
+  });
+});

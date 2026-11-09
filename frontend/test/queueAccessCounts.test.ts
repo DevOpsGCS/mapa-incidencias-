@@ -53,3 +53,15 @@ describe("queueAccessCounts", () => {
     expect(rows.map((r) => r.depth)).toEqual([0, 1]);
   });
 });
+
+describe("orden por segmentos", () => {
+  it("A, A::C y luego A B", () => {
+    const qs: Catalog["queues"] = ["A B", "A::C", "A"].map((name, i) => ({ id: i, name, parent: null, valid: true }));
+    expect(queueAccessCounts(qs, [], []).map((r) => r.name)).toEqual(["A", "A::C", "A B"]);
+  });
+  it("Tecnología no cuenta tickets de TecnologíaX (frontera)", () => {
+    const rows = queueAccessCounts(queues, [user("a", ["TecnologíaX"])], [ticket("TecnologíaX", "open")]);
+    expect(find(rows, "Tecnología").openTickets).toBe(0);
+    expect(find(rows, "Tecnología").usersWithAccess).toBe(0);
+  });
+});
