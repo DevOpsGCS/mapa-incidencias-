@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TicketNotification } from "../hooks/useDashboardData";
 import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
-import { QueueIcon } from "../lib/queueIcons";
-import { priorityColor, stateTypeColor } from "../lib/znunyColors";
+import { priorityTextColor, priorityTint } from "../lib/priorityTint";
+import { queueLabel } from "../lib/sitePanel";
+import { stateTypeColor } from "../lib/znunyColors";
+import { ServiceDeskLink } from "./ServiceDeskLink";
 import { Catalog } from "../types";
 
 interface NotificationStackProps {
@@ -27,6 +29,7 @@ export function NotificationStack({ notifications, catalog, onDismiss }: Notific
         <Toast
           key={notification.id}
           notification={notification}
+          catalog={catalog}
           priorityRank={rankById.get(notification.ticket.priorityId) ?? UNKNOWN_PRIORITY_RANK}
           onDismiss={() => onDismiss(notification.id)}
         />
@@ -37,11 +40,12 @@ export function NotificationStack({ notifications, catalog, onDismiss }: Notific
 
 interface ToastProps {
   notification: TicketNotification;
+  catalog: Catalog | null;
   priorityRank: number;
   onDismiss: () => void;
 }
 
-function Toast({ notification, priorityRank, onDismiss }: ToastProps) {
+function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
   const { ticket, kind, previousState } = notification;
   const siteName = ticket.siteName ?? ticket.siteKey ?? "Sin sitio";
   const [visible, setVisible] = useState(false);
@@ -75,52 +79,73 @@ function Toast({ notification, priorityRank, onDismiss }: ToastProps) {
   };
 
   const isStatusChange = kind === "status_changed";
-  const borderColor = isStatusChange ? stateTypeColor(ticket.stateType) : priorityColor(priorityRank);
-  const label = isStatusChange ? "Cambio de estado" : "Nuevo ticket";
-  const metaLine = isStatusChange
-    ? `${siteName} · ${previousState ? `de ${previousState} a ${ticket.state}` : ticket.state}`
-    : `${siteName} · ${ticket.priority}`;
-  const headline = `${ticket.tn} · ${ticket.title}`;
+  const headline = ticket.title;
+
+  const stateTag = (name: string, color: string) => (
+    <span
+      className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+      style={{ color, background: "var(--surface-1)", border: `1px solid ${color}` }}
+    >
+      {name}
+    </span>
+  );
+  const colorOfStateName = (name: string): string => {
+    const found = catalog?.states.find((s) => s.name === name);
+    return found ? stateTypeColor(found.type) : "var(--text-muted)";
+  };
 
   return (
     <div
-      className={`glass-panel pointer-events-auto flex items-start gap-4 border-l-[5px] px-6 py-5 shadow-2xl transition-all duration-300 ease-out ${
+      className={`pointer-events-auto w-[400px] max-w-full px-4 py-3.5 transition-all duration-300 ease-out ${
         visible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
       }`}
-      style={{ borderLeftColor: borderColor }}
+      style={{
+        background: `${priorityTint(priorityRank, "card")}, var(--surface-3)`,
+        borderRadius: 16,
+        boxShadow: "0 8px 30px rgba(0,0,0,.45)",
+      }}
     >
-      <div className="mt-0.5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06]">
-        <QueueIcon queue={ticket.queue} size={28} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="mono-label text-sm" style={{ color: isStatusChange ? borderColor : "var(--cyan)" }}>
-          {label}
+      <div className="flex items-start gap-2">
+        <p className="min-w-0 flex-1 font-mono text-[10px] uppercase tracking-[.12em] text-text-label">
+          <span style={{ color: priorityTextColor(priorityRank) }}>{ticket.priority}</span>
+          {" · "}
+          {isStatusChange ? "Cambió de estado" : "Ticket nuevo"}
+          {" · "}
+          {siteName}
         </p>
-        {ticket.znunyUrl ? (
-          <a
-            href={ticket.znunyUrl}
-            target="_blank"
-            rel="noopener"
-            className="mt-1 line-clamp-2 block text-xl font-medium text-[color:var(--text)] hover:text-[color:var(--cyan)] hover:underline"
-            title="Ver ticket en la Mesa de Servicio"
-          >
-            {headline}
-          </a>
-        ) : (
-          <p className="mt-1 line-clamp-2 text-xl font-medium text-[color:var(--text)]">
-            {headline}
-          </p>
-        )}
-        <p className="mono-label mt-1.5 text-sm text-[color:var(--muted)]">{metaLine}</p>
+        <button
+          type="button"
+          onClick={handleManualClose}
+          className="flex-shrink-0 text-sm leading-none text-text-label transition-colors hover:text-text-strong"
+          aria-label="Cerrar"
+        >
+          ×
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={handleManualClose}
-        className="flex-shrink-0 text-lg text-[color:var(--muted)] transition-colors hover:text-[color:var(--text)]"
-        aria-label="Cerrar"
-      >
-        ✕
-      </button>
+      <p className="mt-2 line-clamp-2 text-[15px] font-bold text-text-strong">{headline}</p>
+      <p className="mt-1 text-xs text-text-muted">
+        {ticket.tn} · {queueLabel(ticket.queue)}
+      </p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {isStatusChange ? (
+            <>
+              {previousState ? (
+                <>
+                  {stateTag(previousState, colorOfStateName(previousState))}
+                  <span className="text-xs text-text-muted">→</span>
+                </>
+              ) : null}
+              {stateTag(ticket.state, stateTypeColor(ticket.stateType))}
+            </>
+          ) : (
+            stateTag(ticket.state, stateTypeColor(ticket.stateType))
+          )}
+        </div>
+        {ticket.znunyUrl ? (
+          <ServiceDeskLink href={ticket.znunyUrl} variant={isStatusChange ? "short" : "full"} />
+        ) : null}
+      </div>
     </div>
   );
 }
