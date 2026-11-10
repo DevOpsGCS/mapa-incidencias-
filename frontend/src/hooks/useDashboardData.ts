@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { fetchQueueAccess, fetchSites, fetchTickets } from "../api/client";
 import { playTicketChime } from "../lib/notificationSound";
+import { announceNotification } from "../lib/notificationSpeech";
 import { computeZnunyStats } from "../lib/znunyStats";
 import { QueueAccess, Site, Ticket } from "../types";
 import { applyDashboardEvent } from "./dashboardReducer";
@@ -55,6 +56,8 @@ export function useDashboardData() {
 
   const pushNotification = useCallback((entry: TicketNotification) => {
     setNotifications((prev) => [...prev, entry].slice(-MAX_VISIBLE_NOTIFICATIONS));
+    // Después de la campanada, una voz lee lo mismo que muestra la tarjeta.
+    announceNotification(entry);
   }, []);
 
   const handleTicketNew = useCallback(

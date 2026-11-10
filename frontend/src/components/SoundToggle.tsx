@@ -1,6 +1,7 @@
 import { IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { isSoundMuted, primeAudio, setSoundMuted, subscribeSoundMuted } from "../lib/notificationSound";
+import { primeSpeech, stopSpeech } from "../lib/notificationSpeech";
 
 /** Botón chico para mutear/activar la campanada de ticket:new. El click también sirve como el gesto que el navegador exige para desbloquear el audio. */
 export function SoundToggle() {
@@ -10,6 +11,8 @@ export function SoundToggle() {
 
   const handleClick = () => {
     primeAudio();
+    if (muted) primeSpeech();
+    else stopSpeech();
     setSoundMuted(!muted);
   };
 
@@ -17,9 +20,9 @@ export function SoundToggle() {
     <button
       type="button"
       onClick={handleClick}
-      aria-label={muted ? "Activar sonido de notificaciones" : "Silenciar sonido de notificaciones"}
+      aria-label={muted ? "Activar sonido y voz de notificaciones" : "Silenciar sonido y voz de notificaciones"}
       aria-pressed={!muted}
-      title={muted ? "Sonido desactivado" : "Sonido activado"}
+      title={muted ? "Sonido y voz desactivados" : "Sonido y voz activados"}
       className={`flex h-9 w-9 items-center justify-center rounded-[6px] bg-surface-2 transition-colors ${
         muted ? "text-text" : "text-accent-text"
       }`}
