@@ -28,11 +28,11 @@ export function priorityTextColor(rank: number): string {
 /** Selección: fondo --surface-3 + solo resplandor azul suave (sin línea). */
 export const SELECTION_STYLE = {
   background: "var(--surface-3)",
-  boxShadow: "0 0 16px rgba(0,122,252,.30)",
+  boxShadow: "0 0 20px rgba(0,122,252,.55)",
 };
 
 /** Selección para filas a ancho completo en listas con scroll: el aro va por dentro para no recortarse. */
 export const SELECTION_STYLE_INSET = {
   background: "var(--surface-3)",
-  boxShadow: "inset 0 0 14px rgba(0,122,252,.22)",
+  boxShadow: "inset 0 0 18px rgba(0,122,252,.50)",
 };

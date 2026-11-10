@@ -38,7 +38,7 @@
   --glass-bg: rgba(21, 23, 27, 0.72);
   --glass-blur: blur(12px) saturate(120%);
   --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-  --glow-select: 0 0 16px rgba(0, 122, 252, 0.30);
+  --glow-select: 0 0 20px rgba(0, 122, 252, 0.55);
   --glow-critical: 0 0 18px rgba(255, 77, 109, 0.25);
 
   color-scheme: dark;
