@@ -61,3 +61,14 @@ describe("buildNotificationSpeech: cola y propietario", () => {
     );
   });
 });
+
+import { shouldSpeak } from "../src/lib/notificationSpeech";
+
+describe("shouldSpeak", () => {
+  it("solo los tickets nuevos se leen en voz alta", () => {
+    expect(shouldSpeak("new")).toBe(true);
+    expect(shouldSpeak("status_changed")).toBe(false);
+    expect(shouldSpeak("queue_changed")).toBe(false);
+    expect(shouldSpeak("owner_changed")).toBe(false);
+  });
+});

@@ -60,7 +60,7 @@ export function useDashboardData() {
 
   const pushNotification = useCallback((entry: TicketNotification) => {
     setNotifications((prev) => [...prev, entry].slice(-MAX_VISIBLE_NOTIFICATIONS));
-    // Después de la campanada, una voz lee lo mismo que muestra la tarjeta.
+    // Después de la campanada, una voz lee la tarjeta (solo tickets nuevos, ver shouldSpeak).
     announceNotification(entry);
   }, []);
 

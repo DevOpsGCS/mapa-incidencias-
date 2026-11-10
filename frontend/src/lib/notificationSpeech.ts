@@ -101,10 +101,18 @@ export function primeSpeech() {
   s.speak(utterance(s, "Sonido y voz de notificaciones activados."));
 }
 
-/** Lee la notificación después de la campanada (si el sonido no está silenciado). */
+/**
+ * Solo los tickets nuevos se leen en voz alta (decisión del usuario 10-nov):
+ * cambios de estado, de cola y reasignaciones quedan con campanada + tarjeta.
+ */
+export function shouldSpeak(kind: SpeechNotification["kind"]): boolean {
+  return kind === "new";
+}
+
+/** Lee la notificación después de la campanada (si el sonido no está silenciado y es un ticket nuevo). */
 export function announceNotification(n: SpeechNotification) {
   const s = synth();
-  if (!s || isSoundMuted() || queued >= MAX_QUEUED) return;
+  if (!s || !shouldSpeak(n.kind) || isSoundMuted() || queued >= MAX_QUEUED) return;
   queued += 1;
   window.setTimeout(() => {
     const u = utterance(s, buildNotificationSpeech(n));
