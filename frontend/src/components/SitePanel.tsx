@@ -17,6 +17,12 @@ interface SitePanelProps {
 }
 
 const STATE_TYPE_ORDER: Record<StateType, number> = { new: 0, open: 1, pending: 2, closed: 3 };
+// Grupos visuales de las pastillas de estado (separados por una línea): abiertos → pendientes → cerrados.
+const STATE_GROUP: Record<StateType, number> = { new: 0, open: 0, pending: 1, closed: 2 };
+
+function capitalize(text: string): string {
+  return text.charAt(0).toLocaleUpperCase("es") + text.slice(1);
+}
 
 // Alturas en px (nunca "auto"/vh puro): animar la altura solo funciona suave
 // entre dos números concretos, así que se calculan en lib/sitePanel y se aplican inline.
@@ -138,10 +144,14 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
 
   if (!site) return null;
 
-  const pills = [
-    { key: "all", label: "Todos", count: allSiteTickets.length },
-    ...stateChips.map((c) => ({ key: c.name, label: c.name, count: c.count })),
-  ];
+  const pillClass = (active: boolean) =>
+    `inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs transition-colors ${
+      active ? "bg-accent-fill font-semibold text-white" : "bg-surface-2 text-text hover:text-text-strong"
+    }`;
+  const pillStyle = (active: boolean) => (active ? { boxShadow: "var(--glow-select)" } : undefined);
+  const separator = (key: string) => (
+    <span key={key} aria-hidden className="mx-1 h-[18px] w-px bg-line-control" />
+  );
 
   return (
     <div
@@ -172,26 +182,43 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
             </p>
           </div>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-            {pills.map((pill) => (
-              <button
-                key={pill.key}
-                type="button"
-                onClick={() => setStatusFilter(pill.key)}
-                onPointerDown={(event) => event.stopPropagation()}
-                className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                  statusFilter === pill.key
-                    ? "bg-accent-fill font-medium text-white"
-                    : "bg-surface-2 text-text hover:text-text-strong"
-                }`}
-              >
-                {pill.label} <span className="mono-label">{pill.count}</span>
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              onPointerDown={(event) => event.stopPropagation()}
+              className={pillClass(statusFilter === "all")}
+              style={pillStyle(statusFilter === "all")}
+            >
+              Todos <span className="mono-label opacity-80">{allSiteTickets.length}</span>
+            </button>
+            {stateChips.flatMap((chip, index) => {
+              const active = statusFilter === chip.name;
+              const startsGroup =
+                index === 0 || STATE_GROUP[stateChips[index - 1].type] !== STATE_GROUP[chip.type];
+              const pill = (
+                <button
+                  key={chip.name}
+                  type="button"
+                  onClick={() => setStatusFilter(chip.name)}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  className={pillClass(active)}
+                  style={pillStyle(active)}
+                >
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 flex-shrink-0 rounded-full"
+                    style={{ background: stateTypeColor(chip.type) }}
+                  />
+                  {capitalize(chip.name)} <span className="mono-label opacity-80">{chip.count}</span>
+                </button>
+              );
+              return startsGroup ? [separator(`sep-${chip.name}`), pill] : [pill];
+            })}
             <button
               type="button"
               onClick={onClose}
               onPointerDown={(event) => event.stopPropagation()}
-              className="ml-1 flex-shrink-0 rounded-full bg-surface-2 px-3 py-1 text-xs text-text transition-colors hover:text-text-strong"
+              className="ml-2 flex-shrink-0 rounded-full bg-surface-2 px-3 py-1 text-xs text-text transition-colors hover:text-text-strong"
             >
               Cerrar
             </button>
