@@ -9,11 +9,11 @@ import { PriorityPresence, QueueCount } from "./siteDominance";
 // aduanas terrestres geográficamente cercanas):
 //
 //   WRAPPER_SIZE 90 · MAIN_SIZE 56 → margen de 17px a cada lado del
-//   ícono principal, centrado. Los 3 secundarios (20px) cascadean hacia
+//   ícono principal, centrado. Los 3 secundarios (26px) cascadean hacia
 //   la esquina inferior derecha DEL ÍCONO PRINCIPAL con bottom/right
 //   negativos crecientes de a 8px — el más lejano llega a 73+16=89px.
-//   La insignia de la cola dominante (24px) cuelga de la esquina superior
-//   izquierda del principal con top/left -6px → empieza en 17-6=11px.
+//   La insignia de la cola dominante (32px) cuelga de la esquina superior
+//   izquierda del principal con top/left -8px → empieza en 17-8=9px.
 const WRAPPER_SIZE = 90;
 const MAIN_SIZE = 56;
 const MAIN_OFFSET = (WRAPPER_SIZE - MAIN_SIZE) / 2; // 17
@@ -35,12 +35,13 @@ export const MARKER_TIP_Y = TAIL_TOP + TAIL_HEIGHT; // 85
 const RING_WIDTH = 3;
 const INNER_SIZE = MAIN_SIZE - RING_WIDTH * 2; // 50
 
-const SECONDARY_SIZE = 20;
+// 10-nov: insignia y fichas más grandes (pedido del usuario): 24→32 y 20→26.
+const SECONDARY_SIZE = 26;
 const SECONDARY_STEP = 8; // cascada ~43% de superposición entre secundarios consecutivos
 const MAX_SECONDARY_SLOTS = 3;
 
-const BADGE_SIZE = 24;
-const BADGE_OFFSET = 6;
+const BADGE_SIZE = 32;
+const BADGE_OFFSET = 8;
 // La etiqueta del nombre termina 2px por encima de la insignia (y = 9 dentro del wrapper).
 const LABEL_BOTTOM_Y = MAIN_OFFSET - BADGE_OFFSET - 2;
 /** Distancia (sin zoom de TV) del ancla del marcador (la punta del pin) al borde inferior de la etiqueta. */
@@ -145,7 +146,7 @@ export function buildSiteMarkerHtml({
           background:var(--surface-1);
           border:2px solid var(--map-bg);
           box-shadow:0 1px 3px rgba(0,0,0,0.45);
-        ">${queueGlyph(dominant.queue, Math.round(BADGE_SIZE * 0.55), 2.25)}</div>`
+        ">${queueGlyph(dominant.queue, Math.round(BADGE_SIZE * 0.6), 2.25)}</div>`
       : "";
 
   const selectedRing = selected ? "0 0 0 3px rgba(0,122,252,.6)," : "";
@@ -172,7 +173,7 @@ export function buildSiteMarkerHtml({
     secondaryHtml += chip(
       index * SECONDARY_STEP,
       10 + index,
-      queueGlyph(entry.queue, Math.round(SECONDARY_SIZE * 0.55), 2.25)
+      queueGlyph(entry.queue, Math.round(SECONDARY_SIZE * 0.6), 2.25)
     );
   });
   if (overflowCount > 0) {
@@ -180,7 +181,7 @@ export function buildSiteMarkerHtml({
       iconsToShow.length * SECONDARY_STEP,
       10 + iconsToShow.length,
       `+${overflowCount}`,
-      "font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--text-strong);"
+      "font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--text-strong);"
     );
   }
 
