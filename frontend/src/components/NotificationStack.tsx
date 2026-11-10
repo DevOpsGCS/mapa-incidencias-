@@ -46,7 +46,7 @@ interface ToastProps {
 }
 
 function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
-  const { ticket, kind, previousState } = notification;
+  const { ticket, kind, previousState, change } = notification;
   const siteName = ticket.siteName ?? ticket.siteKey ?? "Sin sitio";
   const [visible, setVisible] = useState(false);
   const removeTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -79,6 +79,13 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
   };
 
   const isStatusChange = kind === "status_changed";
+  const kindLabel: Record<typeof kind, string> = {
+    new: "Ticket nuevo",
+    status_changed: "Cambió de estado",
+    queue_changed: "Cambió de cola",
+    owner_changed: "Reasignado",
+  };
+  const formatChange = (value: string) => (kind === "queue_changed" ? queueLabel(value) : value);
   const headline = ticket.title;
 
   const stateTag = (name: string, color: string) => (
@@ -110,7 +117,7 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
         <p className="min-w-0 flex-1 font-mono text-[10px] uppercase tracking-[.12em] text-text-label">
           <span style={{ color: priorityTextColor(priorityRank) }}>{ticket.priority}</span>
           {" · "}
-          {isStatusChange ? "Cambió de estado" : "Ticket nuevo"}
+          {kindLabel[kind]}
           {" · "}
           {siteName}
         </p>
@@ -131,7 +138,17 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
       </p>
       <div className="mt-3 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          {isStatusChange ? (
+          {change ? (
+            <>
+              {change.from ? (
+                <>
+                  {stateTag(formatChange(change.from), "var(--text-muted)")}
+                  <span className="text-xs text-text-muted">→</span>
+                </>
+              ) : null}
+              {stateTag(formatChange(change.to), "var(--text-strong)")}
+            </>
+          ) : isStatusChange ? (
             <>
               {previousState ? (
                 <>

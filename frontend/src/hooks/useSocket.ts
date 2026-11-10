@@ -20,6 +20,16 @@ export interface StatusChangedPayload {
   ticket: Ticket;
 }
 
+/** Ticket movido de cola o reasignado (Move / OwnerUpdate del historial de Znuny). Solo llega a quienes ven la cola actual (destino). */
+export interface TicketChangedPayload {
+  id: number;
+  historyId: number;
+  kind: "queue" | "owner";
+  from: string | null;
+  to: string;
+  ticket: Ticket;
+}
+
 interface UseSocketOptions {
   onTicketNew: (ticket: Ticket) => void;
   onTicketUpdated: (ticket: Ticket) => void;
@@ -28,6 +38,8 @@ interface UseSocketOptions {
   onHeartbeat: (payload: HeartbeatPayload) => void;
   /** Ticket que cambió de estado — viene del poller de estados de Znuny (znunyStatePoller.ts en el backend). */
   onStatusChanged: (payload: StatusChangedPayload) => void;
+  /** Ticket movido de cola o reasignado (también del poller de historial). */
+  onTicketChanged: (payload: TicketChangedPayload) => void;
   /**
    * Se llama al conectar por primera vez Y en cada reconexión (automática o
    * forzada por el watchdog). Quien lo use debe volver a pedir el estado
@@ -53,11 +65,12 @@ export function useSocket({
   onTicketRemoved,
   onHeartbeat,
   onStatusChanged,
+  onTicketChanged,
   onSync,
 }: UseSocketOptions) {
   const [connected, setConnected] = useState(false);
-  const handlersRef = useRef({ onTicketNew, onTicketUpdated, onTicketRemoved, onHeartbeat, onStatusChanged, onSync });
-  handlersRef.current = { onTicketNew, onTicketUpdated, onTicketRemoved, onHeartbeat, onStatusChanged, onSync };
+  const handlersRef = useRef({ onTicketNew, onTicketUpdated, onTicketRemoved, onHeartbeat, onStatusChanged, onTicketChanged, onSync });
+  handlersRef.current = { onTicketNew, onTicketUpdated, onTicketRemoved, onHeartbeat, onStatusChanged, onTicketChanged, onSync };
 
   useEffect(() => {
     const socket: Socket = io(API_BASE_URL, {
@@ -106,6 +119,10 @@ export function useSocket({
     socket.on("ticket:status_changed", (payload: StatusChangedPayload) => {
       armWatchdog();
       handlersRef.current.onStatusChanged(payload);
+    });
+    socket.on("ticket:changed", (payload: TicketChangedPayload) => {
+      armWatchdog();
+      handlersRef.current.onTicketChanged(payload);
     });
 
     return () => {

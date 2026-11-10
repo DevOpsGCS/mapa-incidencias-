@@ -33,3 +33,31 @@ describe("buildNotificationSpeech", () => {
     );
   });
 });
+
+describe("buildNotificationSpeech: cola y propietario", () => {
+  it("movido de cola: dice de qué cola a qué cola", () => {
+    expect(
+      buildNotificationSpeech({
+        kind: "queue_changed",
+        ticket: { ...ticket, queue: "Tecnología::Back Office" },
+        change: { from: "Tecnología::Servicios IT", to: "Tecnología::Back Office" },
+      })
+    ).toBe(
+      "Ticket movido de cola, prioridad alta, en Santa Elena. Impresora tira mensaje de tóner casi agotado. Pasó de Tecnología, Servicios IT a Tecnología, Back Office."
+    );
+  });
+
+  it("reasignado: dice de quién a quién", () => {
+    expect(
+      buildNotificationSpeech({ kind: "owner_changed", ticket, change: { from: "Cristian Castro", to: "Mariana Ayala" } })
+    ).toBe(
+      "Ticket reasignado, prioridad alta, en Santa Elena. Impresora tira mensaje de tóner casi agotado. Cola Tecnología, Servicios IT. Pasó de Cristian Castro a Mariana Ayala."
+    );
+  });
+
+  it("reasignado sin propietario anterior conocido", () => {
+    expect(buildNotificationSpeech({ kind: "owner_changed", ticket, change: { from: null, to: "Mariana Ayala" } })).toContain(
+      "Asignado a Mariana Ayala."
+    );
+  });
+});

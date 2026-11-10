@@ -56,3 +56,23 @@ describe("removalRooms", () => {
     expect(removalRooms("A", "B")).not.toContain("all-queues");
   });
 });
+
+import { isNearCreation, parseMove, parseOwnerUpdate } from "../src/sockets/pollerLogic";
+
+describe("parseMove / parseOwnerUpdate (formatos reales de ticket_history)", () => {
+  it("Move: cola nueva primero, anterior después", () => {
+    expect(parseMove("%%Tecnología::Investigación y Desarrollo%%17%%Tecnología::Servicios IT%%6")).toEqual({
+      to: "Tecnología::Investigación y Desarrollo",
+      from: "Tecnología::Servicios IT",
+    });
+    expect(parseMove("basura")).toBeNull();
+  });
+  it("OwnerUpdate: login e id del nuevo propietario", () => {
+    expect(parseOwnerUpdate("%%rolando.sanchez%%11")).toEqual({ login: "rolando.sanchez", ownerId: 11 });
+    expect(parseOwnerUpdate("%%sin id%%")).toBeNull();
+  });
+  it("isNearCreation: dentro de 90 s después de crearse", () => {
+    expect(isNearCreation("2026-11-10T16:00:30.000Z", "2026-11-10T16:00:00.000Z")).toBe(true);
+    expect(isNearCreation("2026-11-10T16:05:00.000Z", "2026-11-10T16:00:00.000Z")).toBe(false);
+  });
+});

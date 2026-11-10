@@ -56,3 +56,28 @@ export function removalRooms(oldQueue: string, newQueue: string): string[] {
   const kept = new Set(roomsForTicketQueue(newQueue));
   return roomsForTicketQueue(oldQueue).filter((r) => r !== "all-queues" && !kept.has(r));
 }
+
+/** Fila "Move" de ticket_history: "%%ColaNueva%%idNueva%%ColaAnterior%%idAnterior". */
+export function parseMove(historyName: string): { from: string; to: string } | null {
+  const match = /^%%(.*?)%%\d*%%(.*?)%%\d*$/.exec(historyName);
+  if (!match) return null;
+  return { to: match[1], from: match[2] };
+}
+
+/** Fila "OwnerUpdate" de ticket_history: "%%login_nuevo%%idNuevo" (no trae el anterior). */
+export function parseOwnerUpdate(historyName: string): { login: string; ownerId: number } | null {
+  const match = /^%%(.*?)%%(\d+)$/.exec(historyName);
+  if (!match) return null;
+  return { login: match[1], ownerId: Number(match[2]) };
+}
+
+/**
+ * Al crear un ticket, Znuny suele registrar también una asignación de
+ * propietario o un movimiento de cola en el mismo minuto: eso ya lo avisa
+ * "Ticket nuevo", así que esos cambios no se notifican aparte.
+ */
+export const NEAR_CREATION_MS = 90_000;
+export function isNearCreation(changeIso: string, createdIso: string, windowMs = NEAR_CREATION_MS): boolean {
+  const diff = Date.parse(changeIso) - Date.parse(createdIso);
+  return Number.isFinite(diff) && diff >= 0 && diff < windowMs;
+}

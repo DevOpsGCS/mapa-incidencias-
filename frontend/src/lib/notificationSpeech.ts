@@ -10,7 +10,7 @@ import { isSoundMuted } from "./notificationSound";
  */
 
 export interface SpeechNotification {
-  kind: "new" | "status_changed";
+  kind: "new" | "status_changed" | "queue_changed" | "owner_changed";
   ticket: {
     title: string;
     priority: string;
@@ -20,15 +20,35 @@ export interface SpeechNotification {
     siteKey?: string | null;
   };
   previousState?: string;
+  change?: { from: string | null; to: string };
 }
+
+const SPEECH_HEAD: Record<SpeechNotification["kind"], string> = {
+  new: "Ticket nuevo",
+  status_changed: "Cambio de estado",
+  queue_changed: "Ticket movido de cola",
+  owner_changed: "Ticket reasignado",
+};
+
+const spokenQueue = (q: string) => q.split("::").join(", ");
 
 /** Texto que se lee (función pura, testeable). */
 export function buildNotificationSpeech(n: SpeechNotification): string {
   const t = n.ticket;
   const site = t.siteName || t.siteKey;
-  const queue = t.queue.split("::").join(", ");
-  const head = n.kind === "new" ? "Ticket nuevo" : "Cambio de estado";
+  const queue = spokenQueue(t.queue);
+  const head = SPEECH_HEAD[n.kind];
   const parts = [`${head}, prioridad ${t.priority}, ${site ? `en ${site}` : "sin sitio"}.`, `${t.title}.`, `Cola ${queue}.`];
+  if (n.kind === "queue_changed" && n.change) {
+    const { from, to } = n.change;
+    parts[2] = from ? `Pasó de ${spokenQueue(from)} a ${spokenQueue(to)}.` : `Ahora en la cola ${spokenQueue(to)}.`;
+    return parts.join(" ");
+  }
+  if (n.kind === "owner_changed" && n.change) {
+    const { from, to } = n.change;
+    parts.push(from ? `Pasó de ${from} a ${to}.` : `Asignado a ${to}.`);
+    return parts.join(" ");
+  }
   if (n.kind === "status_changed" && n.previousState && n.previousState !== t.state) {
     parts.push(`Pasó de ${n.previousState} a ${t.state}.`);
   } else {

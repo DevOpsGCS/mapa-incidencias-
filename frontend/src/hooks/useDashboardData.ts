@@ -7,7 +7,7 @@ import { QueueAccess, Site, Ticket } from "../types";
 import { applyDashboardEvent } from "./dashboardReducer";
 import { decideStatusChangeNotification } from "./statusChangeNotification";
 import { useCatalog } from "./useCatalog";
-import { HeartbeatPayload, StatusChangedPayload, useSocket } from "./useSocket";
+import { HeartbeatPayload, StatusChangedPayload, TicketChangedPayload, useSocket } from "./useSocket";
 
 export { applyDashboardEvent } from "./dashboardReducer";
 
@@ -26,11 +26,15 @@ interface DashboardState {
 
 export interface TicketNotification {
   id: string;
-  kind: "new" | "status_changed";
+  kind: NotificationKind;
   ticket: Ticket;
   /** Solo para kind === "status_changed" — el estado que tenía antes del cambio. */
   previousState?: string;
+  /** Solo para "queue_changed" / "owner_changed": cola o propietario anterior y nuevo. */
+  change?: { from: string | null; to: string };
 }
+
+export type NotificationKind = "new" | "status_changed" | "queue_changed" | "owner_changed";
 
 const MAX_VISIBLE_NOTIFICATIONS = 4;
 
@@ -139,20 +143,54 @@ export function useDashboardData() {
    * modificar datos. Nunca escribe en Znuny.
    */
   const demoNotification = useCallback(
-    (kind: "new" | "status_changed") => {
+    (kind: NotificationKind) => {
       const tickets = stateRef.current.tickets;
       if (tickets.length === 0) return;
       const ticket = tickets[Math.floor(Math.random() * tickets.length)];
       const states = (catalog?.states ?? []).filter((s) => s.name !== ticket.state).map((s) => s.name);
+      const otherQueue = (catalog?.queues ?? []).find((q) => q.name !== ticket.queue)?.name ?? "Otra cola";
+      const otherOwner = tickets.find((t) => t.owner !== ticket.owner)?.owner ?? "Otro agente";
       playTicketChime();
       pushNotification({
         id: `demo-${ticket.id}-${Date.now()}`,
         kind,
         ticket,
         previousState: kind === "status_changed" ? states[0] ?? "abierto" : undefined,
+        change:
+          kind === "queue_changed"
+            ? { from: otherQueue, to: ticket.queue }
+            : kind === "owner_changed"
+              ? { from: otherOwner, to: ticket.owner }
+              : undefined,
       });
     },
     [catalog, pushNotification]
+  );
+
+  /** Ticket movido de cola o reasignado: llega solo a quienes ven la cola destino (lo filtra el backend). */
+  const handleTicketChanged = useCallback(
+    (payload: TicketChangedPayload) => {
+      setState((prev) => ({
+        ...prev,
+        // Puede no estar cargado (recién llegado a una cola que este usuario ve): se agrega.
+        tickets: applyDashboardEvent(prev.tickets, { type: "updated", ticket: payload.ticket }),
+        lastEventAt: new Date(),
+      }));
+
+      const notified = notifiedStatusKeysRef.current;
+      const key = `changed:${payload.historyId}`;
+      if (notified.has(key)) return;
+      notified.add(key);
+
+      playTicketChime();
+      pushNotification({
+        id: `${payload.id}-${payload.kind}-${payload.historyId}`,
+        kind: payload.kind === "queue" ? "queue_changed" : "owner_changed",
+        ticket: payload.ticket,
+        change: { from: payload.from, to: payload.to },
+      });
+    },
+    [pushNotification]
   );
 
   const dismissNotification = useCallback((id: string) => {
@@ -186,6 +224,7 @@ export function useDashboardData() {
     onTicketRemoved: handleTicketRemoved,
     onHeartbeat: handleHeartbeat,
     onStatusChanged: handleStatusChanged,
+    onTicketChanged: handleTicketChanged,
     onSync: loadFullState,
   });
 
