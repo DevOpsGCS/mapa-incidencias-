@@ -6,7 +6,7 @@ import { SlaBar } from "./SlaBar";
 import { TicketDetail } from "./TicketDetail";
 import { TicketTitleLink } from "./TicketTitleLink";
 import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
-import { priorityColor, stateTypeColor } from "../lib/znunyColors";
+import { buildStateColorMap, priorityColor, stateColor } from "../lib/znunyColors";
 import { priorityTint, SELECTION_STYLE_INSET } from "../lib/priorityTint";
 import { matchesQueueFilter } from "../lib/queueFilter";
 import { QueueIcon } from "../lib/queueIcons";
@@ -80,6 +80,7 @@ export function TicketsTable({
   const columnsRef = useRef<HTMLDivElement>(null);
 
   const rankById = useMemo(() => buildPriorityRankMap(catalog), [catalog]);
+  const stateColors = useMemo(() => buildStateColorMap(catalog.states), [catalog]);
 
   // Sitios presentes en los tickets (nunca una lista aparte): clave = siteId o la clave cruda.
   const siteOptions = useMemo(() => {
@@ -216,7 +217,7 @@ export function TicketsTable({
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
               <span
                 className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                style={{ background: stateTypeColor(ticket.stateType) }}
+                style={{ background: stateColor(stateColors, ticket.state, ticket.stateType) }}
               />
               <span className={`text-[13px] ${muted}`}>{ticket.state}</span>
             </span>

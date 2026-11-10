@@ -145,7 +145,7 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
           <div className="rounded-card glass p-4">
             <PanelHeader title="Tickets actuales por estado" onDetails={() => onShowDetails({})} />
             <div className="mt-2">
-              <StatusChart stats={stats} onSelectState={(stateType) => onShowDetails({ stateType })} />
+              <StatusChart stats={stats} catalog={catalog} onSelectState={(stateType) => onShowDetails({ stateType })} />
             </div>
           </div>
           <div className="rounded-card glass p-4">

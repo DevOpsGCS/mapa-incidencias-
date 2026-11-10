@@ -3,7 +3,7 @@ import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank
 import { priorityTextColor, priorityTint } from "../lib/priorityTint";
 import { queueLabel } from "../lib/sitePanel";
 import { formatSvDateTime } from "../lib/svTime";
-import { stateTypeColor } from "../lib/znunyColors";
+import { buildStateColorMap, stateColor } from "../lib/znunyColors";
 import { Catalog, Ticket } from "../types";
 
 interface TicketDetailProps {
@@ -55,7 +55,7 @@ export function TicketDetail({ ticket, catalog, emptyText = "Sin tickets con est
         <span className="mono-label inline-flex items-center gap-1.5 rounded bg-surface-3 px-2 py-0.5 text-xs text-text">
           <span
             className="h-2 w-2 rounded-full"
-            style={{ background: stateTypeColor(ticket.stateType) }}
+            style={{ background: stateColor(buildStateColorMap(catalog.states), ticket.state, ticket.stateType) }}
             aria-hidden
           />
           {ticket.state}

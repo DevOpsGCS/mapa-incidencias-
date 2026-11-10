@@ -6,7 +6,7 @@ import { SITE_TYPE_LABELS } from "../lib/labels";
 import { priorityTextColor, priorityTint, SELECTION_STYLE_INSET } from "../lib/priorityTint";
 import { computeSlaPercentage } from "../lib/sla";
 import { formatAge, panelHeights, pickSelected, queueLabel } from "../lib/sitePanel";
-import { isOpenStateType, stateTypeColor } from "../lib/znunyColors";
+import { buildStateColorMap, isOpenStateType, stateColor } from "../lib/znunyColors";
 import { Catalog, Site, StateType, Ticket } from "../types";
 
 interface SitePanelProps {
@@ -74,6 +74,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
   }, [site?.id]);
 
   const rankById = useMemo(() => buildPriorityRankMap(catalog), [catalog]);
+  const stateColors = useMemo(() => buildStateColorMap(catalog.states), [catalog]);
 
   const allSiteTickets = useMemo(
     () => (site ? tickets.filter((t) => t.siteId === site.id) : []),
@@ -207,7 +208,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
                   <span
                     aria-hidden
                     className="h-2 w-2 flex-shrink-0 rounded-full"
-                    style={{ background: stateTypeColor(chip.type) }}
+                    style={{ background: stateColor(stateColors, chip.name, chip.type) }}
                   />
                   {capitalize(chip.name)} <span className="mono-label opacity-80">{chip.count}</span>
                 </button>
@@ -262,7 +263,7 @@ export function SitePanel({ site, tickets, catalog, onClose }: SitePanelProps) {
                   <span className="flex min-w-0 items-center gap-1.5 text-xs text-text">
                     <span
                       className="h-2 w-2 flex-shrink-0 rounded-full"
-                      style={{ background: stateTypeColor(ticket.stateType) }}
+                      style={{ background: stateColor(stateColors, ticket.state, ticket.stateType) }}
                       aria-hidden
                     />
                     <span className="truncate">{ticket.state}</span>

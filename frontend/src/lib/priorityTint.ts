@@ -9,11 +9,17 @@ function clampRank(rank: number): number {
   return Math.min(Math.floor(rank), 3); // Infinity => 3
 }
 
-/** `background-image` CSS del tinte de prioridad (nunca una barra lateral). */
-export function priorityTint(rank: number, variant: "card" | "row"): string {
+/**
+ * `background-image` CSS del tinte de prioridad (nunca una barra lateral).
+ * "notification" es más intenso que "card": las notificaciones deben llamar la atención.
+ */
+export function priorityTint(rank: number, variant: "card" | "row" | "notification"): string {
   const r = clampRank(rank);
   const [R, G, B] = PRIORITY_RGB[r];
   const c = (a: number) => `rgba(${R}, ${G}, ${B}, ${a})`;
+  if (variant === "notification") {
+    return `linear-gradient(180deg, ${c(0.34)}, ${c(0.12)} 70%)`;
+  }
   if (variant === "card") {
     return `linear-gradient(180deg, ${c(0.14)}, ${c(0.04)} 55%)`;
   }

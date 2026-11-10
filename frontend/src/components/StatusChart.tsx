@@ -1,10 +1,12 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { STATE_TYPE_HEX, UI_HEX } from "../lib/dataColors";
+import { UI_HEX } from "../lib/dataColors";
+import { buildStateColorMap, stateColor } from "../lib/znunyColors";
 import { ZnunyStats } from "../lib/znunyStats";
-import { StateType } from "../types";
+import { Catalog, StateType } from "../types";
 
 interface StatusChartProps {
   stats: ZnunyStats;
+  catalog: Catalog;
   /** Clic en una barra: filtra el detalle por ese tipo de estado. */
   onSelectState?: (stateType: StateType) => void;
 }
@@ -12,7 +14,8 @@ interface StatusChartProps {
 const STATE_TYPE_ORDER: Record<StateType, number> = { new: 0, open: 1, pending: 2, closed: 3 };
 
 /** Solo el gráfico: el panel (título y "Ver detalles") lo pone MetricsView. */
-export function StatusChart({ stats, onSelectState }: StatusChartProps) {
+export function StatusChart({ stats, catalog, onSelectState }: StatusChartProps) {
+  const stateColors = buildStateColorMap(catalog.states);
   // Estados reales de la mesa (nombres en vivo), ordenados por tipo y luego por nombre.
   const data = [...stats.byState]
     .sort((a, b) => STATE_TYPE_ORDER[a.stateType] - STATE_TYPE_ORDER[b.stateType] || a.name.localeCompare(b.name))
@@ -58,7 +61,7 @@ export function StatusChart({ stats, onSelectState }: StatusChartProps) {
             }}
           >
             {data.map((entry) => (
-              <Cell key={entry.label} fill={STATE_TYPE_HEX[entry.stateType]} />
+              <Cell key={entry.label} fill={stateColor(stateColors, entry.label, entry.stateType)} />
             ))}
           </Bar>
         </BarChart>

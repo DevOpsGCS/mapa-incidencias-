@@ -45,3 +45,11 @@ describe("glow de selección", () => {
     expect(SELECTION_STYLE_INSET.boxShadow).toBe("inset 0 0 18px rgba(0,122,252,.50)");
   });
 });
+
+describe("tinte de notificación", () => {
+  it("es más intenso que el de tarjeta", () => {
+    expect(priorityTint(0, "notification")).toBe(
+      "linear-gradient(180deg, rgba(255, 77, 109, 0.34), rgba(255, 77, 109, 0.12) 70%)"
+    );
+  });
+});

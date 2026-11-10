@@ -23,6 +23,20 @@ export const STATE_TYPE_HEX: Record<StateType, string> = {
   closed: "#64748b",
 };
 
+/**
+ * Tonos por estado dentro de cada tipo: Znuny puede tener varios estados del
+ * mismo tipo (p. ej. "abierto", "En proceso de compra" y "Pendiente de
+ * aprobación" son todos `open`) y con un solo color por tipo no se distinguen.
+ * El primero de cada lista es el color del tipo (STATE_TYPE_HEX); los demás son
+ * de la misma familia. Se asignan por id de estado (ver buildStateColorMap).
+ */
+export const STATE_SHADES_HEX: Record<StateType, string[]> = {
+  new: ["#3ed6c4", "#67e8f9", "#5eead4"],
+  open: ["#4c7fff", "#c084fc", "#38bdf8", "#818cf8", "#e879f9"],
+  pending: ["#f5a623", "#fb923c", "#facc15", "#fda4af"],
+  closed: ["#64748b", "#94a3b8", "#475569"],
+};
+
 /** Colores de la interfaz para atributos SVG (recharts), donde var(--x) puede no resolverse
  *  en navegadores de TV. Valores = tokens de index.css (--line, --text-label, --text-strong...). */
 export const UI_HEX = {

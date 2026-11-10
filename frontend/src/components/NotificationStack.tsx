@@ -3,7 +3,7 @@ import { TicketNotification } from "../hooks/useDashboardData";
 import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
 import { priorityTextColor, priorityTint } from "../lib/priorityTint";
 import { queueLabel } from "../lib/sitePanel";
-import { stateTypeColor } from "../lib/znunyColors";
+import { buildStateColorMap, stateColor } from "../lib/znunyColors";
 import { TicketTitleLink } from "./TicketTitleLink";
 import { Catalog } from "../types";
 
@@ -89,9 +89,10 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
       {name}
     </span>
   );
+  const stateColors = buildStateColorMap(catalog?.states ?? []);
   const colorOfStateName = (name: string): string => {
     const found = catalog?.states.find((s) => s.name === name);
-    return found ? stateTypeColor(found.type) : "var(--text-muted)";
+    return found ? stateColor(stateColors, found.name, found.type) : "var(--text-muted)";
   };
 
   return (
@@ -101,7 +102,7 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
       }`}
       style={{
         // Solo el tinte va inline: se apila sobre el fondo de .glass (con su respaldo @supports).
-        backgroundImage: priorityTint(priorityRank, "card"),
+        backgroundImage: priorityTint(priorityRank, "notification"),
         borderRadius: 16,
       }}
     >
@@ -138,10 +139,10 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
                   <span className="text-xs text-text-muted">→</span>
                 </>
               ) : null}
-              {stateTag(ticket.state, stateTypeColor(ticket.stateType))}
+              {stateTag(ticket.state, stateColor(stateColors, ticket.state, ticket.stateType))}
             </>
           ) : (
-            stateTag(ticket.state, stateTypeColor(ticket.stateType))
+            stateTag(ticket.state, stateColor(stateColors, ticket.state, ticket.stateType))
           )}
         </div>
       </div>
