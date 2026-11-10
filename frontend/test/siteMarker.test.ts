@@ -90,4 +90,28 @@ describe("buildSiteMarkerHtml", () => {
     });
     expect(html).toContain('src="/sites/a&quot;b.webp"');
   });
+
+  it("muestra el nombre del sitio (escapado) en una etiqueta sobre el marcador", () => {
+    const html = buildSiteMarkerHtml({
+      queueCounts: [],
+      priorityPresence: EMPTY_PRESENCE,
+      selected: false,
+      siteId: "x",
+      imageUrl: null,
+      siteName: 'Aduana <"Poy"> & Co',
+    });
+    expect(html).toContain("data-site-label");
+    expect(html).toContain("Aduana &lt;&quot;Poy&quot;&gt; &amp; Co");
+    expect(html).not.toContain('<"Poy">');
+  });
+
+  it("sin nombre no agrega etiqueta", () => {
+    const html = buildSiteMarkerHtml({
+      queueCounts: [],
+      priorityPresence: EMPTY_PRESENCE,
+      selected: false,
+      imageUrl: null,
+    });
+    expect(html).not.toContain("data-site-label");
+  });
 });

@@ -1,10 +1,13 @@
-import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import { useCallback, useEffect, useState } from "react";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { CountryBoundary } from "./CountryBoundary";
 import { MapZoomControls } from "./MapZoomControls";
 import { countryFitOptions, EL_SALVADOR_BOUNDS } from "../lib/mapFraming";
 import { buildSiteMarkerIcon } from "../lib/siteMarkerIcon";
 import { EMPTY_PRESENCE, PriorityPresence, QueueCount } from "../lib/siteDominance";
 import { siteImageUrl } from "../lib/siteImages";
+import { pickVisibleLabels } from "../lib/labelCollision";
+import { LABEL_ABOVE_ANCHOR } from "../lib/siteMarkerHtml";
 import { Site } from "../types";
 
 interface MapViewProps {
@@ -20,6 +23,67 @@ const CARTO_TILE_URL = `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r
   CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ""
 }`;
 
+/**
+ * Prioridad de la etiqueta: seleccionado > con prioridad máxima abierta > con
+ * tickets abiertos > resto; dentro de cada nivel, más tickets abiertos primero.
+ */
+function labelPriority(
+  site: Site,
+  presence: PriorityPresence,
+  queueCounts: QueueCount[],
+  selectedSiteId?: string
+): number {
+  const hasOpen = presence.some(Boolean);
+  // Sin abiertos, queueCounts trae un relleno histórico: no cuenta.
+  const openCount = hasOpen ? queueCounts.reduce((acc, q) => acc + q.count, 0) : 0;
+  const tier = site.id === selectedSiteId ? 3 : presence[0] ? 2 : hasOpen ? 1 : 0;
+  return tier * 100_000 + openCount;
+}
+
+/**
+ * Calcula qué nombres de sitio caben sin encimarse en el zoom actual (ver
+ * labelCollision.ts). Vive dentro del MapContainer para tener el mapa.
+ */
+function LabelLayout({
+  sites,
+  sitePriorityPresenceById,
+  queueBreakdownBySite,
+  selectedSiteId,
+  onChange,
+}: {
+  sites: Site[];
+  sitePriorityPresenceById: Map<string, PriorityPresence>;
+  queueBreakdownBySite: Map<string, QueueCount[]>;
+  selectedSiteId?: string;
+  onChange: (visible: Set<string>) => void;
+}) {
+  const map = useMap();
+  const recompute = useCallback(() => {
+    const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hud-zoom"));
+    const scale = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+    const candidates = sites.map((site) => {
+      const point = map.latLngToContainerPoint([site.lat, site.lng]);
+      return {
+        id: site.id,
+        x: point.x,
+        y: point.y - LABEL_ABOVE_ANCHOR * scale,
+        text: site.name,
+        priority: labelPriority(
+          site,
+          sitePriorityPresenceById.get(site.id) ?? EMPTY_PRESENCE,
+          queueBreakdownBySite.get(site.id) ?? [],
+          selectedSiteId
+        ),
+      };
+    });
+    onChange(pickVisibleLabels(candidates, scale));
+  }, [map, sites, sitePriorityPresenceById, queueBreakdownBySite, selectedSiteId, onChange]);
+
+  useEffect(recompute, [recompute]);
+  useMapEvents({ zoomend: recompute, resize: recompute });
+  return null;
+}
+
 export function MapView({
   sites,
   queueBreakdownBySite,
@@ -27,6 +91,7 @@ export function MapView({
   selectedSiteId,
   onSelectSite,
 }: MapViewProps) {
+  const [visibleLabels, setVisibleLabels] = useState<Set<string>>(new Set());
   return (
     <div className="relative h-full w-full">
       <MapContainer
@@ -46,6 +111,13 @@ export function MapView({
         {/* zoomControl nativo desactivado por estética; estos botones grandes
             son necesarios en navegadores de TV, que no tienen rueda ni pinch. */}
         <MapZoomControls homeBounds={EL_SALVADOR_BOUNDS} />
+        <LabelLayout
+          sites={sites}
+          sitePriorityPresenceById={sitePriorityPresenceById}
+          queueBreakdownBySite={queueBreakdownBySite}
+          selectedSiteId={selectedSiteId}
+          onChange={setVisibleLabels}
+        />
         {sites.map((site) => {
           const queueCounts = queueBreakdownBySite.get(site.id) ?? [];
           const priorityPresence = sitePriorityPresenceById.get(site.id) ?? EMPTY_PRESENCE;
@@ -60,7 +132,8 @@ export function MapView({
                 priorityPresence,
                 isSelected,
                 site.id,
-                siteImageUrl(site.znunyKey)
+                siteImageUrl(site.znunyKey),
+                visibleLabels.has(site.id) ? site.name : undefined
               )}
               eventHandlers={{ click: () => onSelectSite(site) }}
             />

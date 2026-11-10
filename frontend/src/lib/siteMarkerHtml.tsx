@@ -32,6 +32,10 @@ const MAX_SECONDARY_SLOTS = 3;
 
 const BADGE_SIZE = 24;
 const BADGE_OFFSET = 6;
+// La etiqueta del nombre termina 2px por encima de la insignia (y = 9 dentro del wrapper).
+const LABEL_BOTTOM_Y = MAIN_OFFSET - BADGE_OFFSET - 2;
+/** Distancia (sin zoom de TV) del ancla del marcador al borde inferior de la etiqueta. */
+export const LABEL_ABOVE_ANCHOR = MAIN_CENTER - LABEL_BOTTOM_Y;
 
 /**
  * Aro de prioridad: 4 cuadrantes fijos en sentido horario desde las 12
@@ -79,6 +83,8 @@ export interface SiteMarkerHtmlInput {
   siteId?: string;
   /** Foto del sitio (ver siteImages.ts); null = sin foto, cae al ícono de la cola dominante. */
   imageUrl: string | null;
+  /** Nombre visible del sitio; se muestra en una etiqueta sobre el marcador. */
+  siteName?: string;
 }
 
 /**
@@ -98,6 +104,7 @@ export function buildSiteMarkerHtml({
   selected,
   siteId,
   imageUrl,
+  siteName,
 }: SiteMarkerHtmlInput): string {
   const [dominant, ...additional] = queueCounts;
 
@@ -158,6 +165,20 @@ export function buildSiteMarkerHtml({
     );
   }
 
+  // Etiqueta con el nombre, centrada sobre el aro (termina justo encima de la
+  // insignia). Es la única pieza que puede salir del cuadrado de 90x90: el
+  // nombre no cabe en él. pointer-events:none para no robar clics al mapa.
+  const labelHtml = siteName
+    ? `<div data-site-label style="
+        position:absolute;left:${MAIN_CENTER}px;bottom:${WRAPPER_SIZE - LABEL_BOTTOM_Y}px;z-index:30;
+        transform:translateX(-50%);white-space:nowrap;pointer-events:none;
+        padding:2px 8px;border-radius:9999px;
+        background:rgba(11,18,32,0.78);
+        color:var(--text-strong);font-size:11px;font-weight:600;line-height:1.3;
+        box-shadow:0 1px 3px rgba(0,0,0,0.45);
+      ">${escapeAttr(siteName)}</div>`
+    : "";
+
   return `<div data-site-marker="${escapeAttr(siteId ?? "")}" data-secondary-count="${iconsToShow.length}" style="position:relative;width:${WRAPPER_SIZE}px;height:${WRAPPER_SIZE}px;transform:scale(var(--hud-zoom,1));transform-origin:${MAIN_CENTER}px ${MAIN_CENTER}px;">
       <div class="${pulseClass}" style="
         position:absolute;left:${MAIN_OFFSET}px;top:${MAIN_OFFSET}px;z-index:5;
@@ -174,5 +195,6 @@ export function buildSiteMarkerHtml({
         ${badgeHtml}
         ${secondaryHtml}
       </div>
+      ${labelHtml}
     </div>`;
 }

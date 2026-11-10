@@ -19,14 +19,15 @@ export function buildSiteMarkerIcon(
   priorityPresence: PriorityPresence,
   selected: boolean,
   siteId: string | undefined,
-  imageUrl: string | null
+  imageUrl: string | null,
+  siteName?: string
 ): L.DivIcon {
-  const cacheKey = `${siteId}|${imageUrl}|${JSON.stringify(queueCounts)}|${JSON.stringify(priorityPresence)}|${selected}`;
+  const cacheKey = `${siteId}|${siteName}|${imageUrl}|${JSON.stringify(queueCounts)}|${JSON.stringify(priorityPresence)}|${selected}`;
   const cached = iconCache.get(cacheKey);
   if (cached) return cached;
 
   const icon = L.divIcon({
-    html: buildSiteMarkerHtml({ queueCounts, priorityPresence, selected, siteId, imageUrl }),
+    html: buildSiteMarkerHtml({ queueCounts, priorityPresence, selected, siteId, imageUrl, siteName }),
     className: "",
     iconSize: [MARKER_WRAPPER_SIZE, MARKER_WRAPPER_SIZE],
     iconAnchor: [MAIN_CENTER, MAIN_CENTER],
