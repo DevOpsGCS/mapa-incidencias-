@@ -2,7 +2,8 @@ export type StateType = "new" | "open" | "pending" | "closed";
 
 export interface Catalog {
   queues: { id: number; name: string; parent: string | null; valid: boolean }[];
-  states: { id: number; name: string; type: StateType }[]; // solo válidos, sin merged/removed
+  /** color: el configurado en Znuny (ticket_state.color) normalizado a #rrggbb, o null. */
+  states: { id: number; name: string; type: StateType; color: string | null }[]; // solo válidos, sin merged/removed
   priorities: { id: number; name: string; rank: number }[]; // solo válidas; rank 0 = la más alta
   types: string[];
   services: string[];

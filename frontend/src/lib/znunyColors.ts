@@ -12,12 +12,14 @@ export function stateTypeColor(t: StateType): string {
 }
 
 /**
- * Color de cada estado por NOMBRE: dentro de su tipo, los estados se ordenan
- * por id (el estándar de Znuny, de id más bajo, conserva el color del tipo) y
- * toman los tonos de STATE_SHADES_HEX en orden (si sobran estados, se repiten).
- * Sale del catálogo en vivo: nunca una lista fija de nombres.
+ * Color de cada estado por NOMBRE, del catálogo en vivo (nunca una lista fija):
+ * 1. el color configurado en Znuny para ese estado (Admin → Estados), si tiene;
+ * 2. si no, un tono de la familia de su tipo: dentro del tipo, por id (el de id
+ *    más bajo conserva el color del tipo) según STATE_SHADES_HEX (se repiten si sobran).
  */
-export function buildStateColorMap(states: { id: number; name: string; type: StateType }[]): Map<string, string> {
+export function buildStateColorMap(
+  states: { id: number; name: string; type: StateType; color?: string | null }[]
+): Map<string, string> {
   const map = new Map<string, string>();
   const byType = new Map<StateType, { id: number; name: string }[]>();
   for (const s of states) {
@@ -28,6 +30,9 @@ export function buildStateColorMap(states: { id: number; name: string; type: Sta
   for (const [type, list] of byType) {
     const shades = STATE_SHADES_HEX[type] ?? [STATE_TYPE_HEX.open];
     [...list].sort((a, b) => a.id - b.id).forEach((s, i) => map.set(s.name, shades[i % shades.length]));
+  }
+  for (const s of states) {
+    if (s.color && /^#[0-9a-f]{6}$/i.test(s.color)) map.set(s.name, s.color);
   }
   return map;
 }

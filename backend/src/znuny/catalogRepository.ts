@@ -15,6 +15,15 @@ export function normalizeStateType(typeName: string): StateType | null {
 }
 
 /** rank 0 = id más alto (en Znuny el id define el orden de prioridad). */
+/**
+ * Color de estado configurado en Znuny ("#RRGGBBAA" o "#RRGGBB") → "#rrggbb".
+ * Se descarta el canal alfa; cualquier otro formato → null (el frontend usa su color por tipo).
+ */
+export function normalizeStateColor(raw: string | null | undefined): string | null {
+  const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec((raw ?? "").trim());
+  return m ? `#${m[1].toLowerCase()}` : null;
+}
+
 export function rankPriorities(
   rows: { id: number; name: string }[]
 ): { id: number; name: string; rank: number }[] {
@@ -39,8 +48,8 @@ export async function getCatalog(): Promise<Catalog> {
     znunyReadOnlyQuery<{ id: number; name: string; valid_id: number }>(
       "SELECT id, name, valid_id FROM queue ORDER BY name"
     ),
-    znunyReadOnlyQuery<{ id: number; name: string; type_name: string }>(
-      `SELECT s.id, s.name, t.name AS type_name
+    znunyReadOnlyQuery<{ id: number; name: string; type_name: string; color: string | null }>(
+      `SELECT s.id, s.name, s.color, t.name AS type_name
          FROM ticket_state s JOIN ticket_state_type t ON t.id = s.type_id
         WHERE s.valid_id = 1 ORDER BY s.id`
     ),
@@ -64,7 +73,7 @@ export async function getCatalog(): Promise<Catalog> {
   const states: Catalog["states"] = [];
   for (const s of stateRows) {
     const type = normalizeStateType(s.type_name);
-    if (type) states.push({ id: s.id, name: s.name, type });
+    if (type) states.push({ id: s.id, name: s.name, type, color: normalizeStateColor(s.color) });
   }
 
   const priorities = rankPriorities(priorityRows);

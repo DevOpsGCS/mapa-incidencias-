@@ -52,3 +52,18 @@ describe("parseDropdownOptions", () => {
     expect(parseDropdownOptions("DefaultValue: ''\n")).toEqual([]);
   });
 });
+
+import { normalizeStateColor } from "../src/znuny/catalogRepository";
+
+describe("normalizeStateColor", () => {
+  it("convierte #RRGGBBAA de Znuny a #rrggbb", () => {
+    expect(normalizeStateColor("#50B5FFFF")).toBe("#50b5ff");
+    expect(normalizeStateColor("#1B841B")).toBe("#1b841b");
+  });
+  it("vacío o con formato raro → null", () => {
+    expect(normalizeStateColor(null)).toBeNull();
+    expect(normalizeStateColor("")).toBeNull();
+    expect(normalizeStateColor("red")).toBeNull();
+    expect(normalizeStateColor("#12345")).toBeNull();
+  });
+});

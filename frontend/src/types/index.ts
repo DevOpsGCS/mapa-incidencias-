@@ -38,7 +38,8 @@ export type StateType = "new" | "open" | "pending" | "closed";
 
 export interface Catalog {
   queues: { id: number; name: string; parent: string | null; valid: boolean }[];
-  states: { id: number; name: string; type: StateType }[];
+  /** color: el de Znuny (#rrggbb) o null. */
+  states: { id: number; name: string; type: StateType; color?: string | null }[];
   priorities: { id: number; name: string; rank: number }[];
   types: string[];
   services: string[];

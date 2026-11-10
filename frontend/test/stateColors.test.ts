@@ -44,3 +44,16 @@ describe("buildStateColorMap", () => {
     }
   });
 });
+
+describe("buildStateColorMap con colores de Znuny", () => {
+  it("usa el color configurado en Znuny cuando existe", () => {
+    const map = buildStateColorMap([
+      { id: 4, name: "abierto", type: "open", color: "#50b5ff" },
+      { id: 11, name: "En proceso de compra", type: "open", color: "#1b841b" },
+      { id: 12, name: "Sin color", type: "open", color: null },
+    ]);
+    expect(map.get("abierto")).toBe("#50b5ff");
+    expect(map.get("En proceso de compra")).toBe("#1b841b");
+    expect(map.get("Sin color")).toBe(STATE_SHADES_HEX.open[2]);
+  });
+});
