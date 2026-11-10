@@ -16,6 +16,7 @@ import { searchAdmin } from "../lib/adminSearch";
 import { SELECTION_STYLE } from "../lib/priorityTint";
 import { AdminUserSummary, Site } from "../types";
 import { ADMIN_NAV, AdminNavIcon } from "./adminNav";
+import { MapBackdrop } from "../components/MapBackdrop";
 
 export interface AdminCrumb {
   label: string;
@@ -120,7 +121,8 @@ export function AdminLayout({ title, crumbs, children }: AdminLayoutProps) {
   }, [title]);
 
   return (
-    <div className="app-backdrop min-h-screen text-text">
+    <div className="isolate min-h-screen bg-bg text-text">
+      <MapBackdrop />
       <header className="fixed inset-x-0 top-0 z-20 flex h-11 items-center gap-4 glass px-4">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Global Customs Solutions" className="h-6 w-auto" />

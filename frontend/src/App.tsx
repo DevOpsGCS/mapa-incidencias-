@@ -12,6 +12,7 @@ import { TopBar, DashboardView } from "./components/TopBar";
 import { bannerState } from "./lib/bannerState";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { Site } from "./types";
+import { MapBackdrop } from "./components/MapBackdrop";
 
 export default function App() {
   const navigate = useNavigate();
@@ -37,7 +38,9 @@ export default function App() {
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
 
   return (
-    <div className="h-screen overflow-hidden bg-bg">
+    <div className="isolate h-screen overflow-hidden bg-bg">
+      {/* Fuera del mapa en vivo, el mapa desenfocado queda detrás del vidrio. */}
+      {view !== "map" && <MapBackdrop />}
       <TopBar
         view={view}
         onViewChange={setView}
@@ -77,7 +80,7 @@ export default function App() {
       )}
 
       {view === "legacy" ? (
-        <div className="app-backdrop h-full">
+        <div className="h-full">
           <LegacyView />
         </div>
       ) : loading || !stats || !catalog ? (

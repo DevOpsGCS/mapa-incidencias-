@@ -89,8 +89,7 @@ body {
 .app-backdrop {
   background:
     radial-gradient(1200px 600px at 20% -10%, rgba(0, 122, 252, 0.1), transparent 60%),
-    radial-gradient(900px 500px at 110% 110%, rgba(62, 214, 196, 0.06), transparent 60%),
-    var(--bg);
+    radial-gradient(900px 500px at 110% 110%, rgba(62, 214, 196, 0.06), transparent 60%);
 }
 
 /* Filas del panel del sitio (D1): el layout depende del ancho de la propia lista

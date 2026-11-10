@@ -87,7 +87,7 @@ export function MetricsView({ tickets, stats, catalog, lastHeartbeatAt = null, o
   };
 
   return (
-    <div className="under-topbar thin-scroll app-backdrop h-full overflow-y-auto px-5 pb-6 pt-[92px]">
+    <div className="under-topbar thin-scroll h-full overflow-y-auto px-5 pb-6 pt-[92px]">
       <div className="mx-auto flex max-w-screen-2xl flex-col gap-4">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
