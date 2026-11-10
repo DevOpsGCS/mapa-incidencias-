@@ -28,7 +28,6 @@ export function TicketDetail({ ticket, catalog, emptyText = "Sin tickets con est
     ["Tipo", ticket.type ?? "—"],
     ["Servicio", ticket.service ?? "—"],
     ["Propietario", ticket.owner],
-    ["Responsable", ticket.responsible ?? "—"],
     ["Cliente", ticket.customer],
     ["Creado", formatSvDateTime(ticket.createdAt)],
     ["Vencimiento SLA", ticket.slaDueAt ? formatSvDateTime(ticket.slaDueAt) : "—"],
