@@ -1,3 +1,4 @@
+import { createPollLoop, PollLoop } from "./pollLoop";
 import type { Server } from "socket.io";
 import { znunyReadOnlyQuery } from "../znuny/db";
 import { roomsForTicketQueue } from "../znuny/queueAccess";
@@ -115,7 +116,7 @@ export async function runStateCycle(io: Server, state: StatePollerState): Promis
   state.lastHistoryId = rows[rows.length - 1].id;
 }
 
-export function startZnunyStatePoller(io: Server): void {
+export function startZnunyStatePoller(io: Server): PollLoop {
   let state: StatePollerState | null = null;
 
   const tick = async () => {
@@ -131,7 +132,8 @@ export function startZnunyStatePoller(io: Server): void {
       console.error("[znuny-poller] error en el ciclo de estados:", err);
       recordPollerError("states", err instanceof Error ? err.message : String(err));
     }
-    setTimeout(tick, POLL_INTERVAL_MS);
   };
-  void tick();
+  const loop = createPollLoop(tick, POLL_INTERVAL_MS);
+  loop.start();
+  return loop;
 }

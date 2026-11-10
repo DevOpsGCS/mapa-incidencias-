@@ -1,3 +1,4 @@
+import { createPollLoop, PollLoop } from "./pollLoop";
 import type { Server } from "socket.io";
 import { znunyReadOnlyQuery } from "../znuny/db";
 import { roomsForTicketQueue } from "../znuny/queueAccess";
@@ -103,7 +104,7 @@ export async function runTicketCycle(io: Server, state: TicketPollerState): Prom
   recordPollerOk("tickets");
 }
 
-export function startZnunyTicketPoller(io: Server): void {
+export function startZnunyTicketPoller(io: Server): PollLoop {
   let state: TicketPollerState | null = null;
 
   const tick = async () => {
@@ -122,7 +123,8 @@ export function startZnunyTicketPoller(io: Server): void {
       // esto el watchdog de las TVs reconectaría en bucle con el túnel caído.
       io.emit("sync:heartbeat", { at: new Date().toISOString(), ok: false });
     }
-    setTimeout(tick, POLL_INTERVAL_MS);
   };
-  void tick();
+  const loop = createPollLoop(tick, POLL_INTERVAL_MS);
+  loop.start();
+  return loop;
 }

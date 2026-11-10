@@ -11,6 +11,7 @@ import { catalogRouter } from "./routes/catalog";
 import { legacyRouter } from "./routes/legacy";
 import { sitesRouter } from "./routes/sites";
 import { ticketsRouter } from "./routes/tickets";
+import { registerWakeTarget, znunyWebhookRouter } from "./routes/znunyWebhook";
 import { usersRepository } from "./repositories/usersRepository";
 import { setIo, userRoom } from "./sockets/io";
 import { roomsForAccess } from "./znuny/queueAccess";
@@ -30,6 +31,8 @@ app.set("trust proxy", 1);
 // de una cookie httpOnly cross-origin (frontend en :5173, backend en :4000
 // en dev).
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
+// Antes de express.json global (límite 100 kb): el webhook de Znuny trae su propio parser.
+app.use("/api/znuny", znunyWebhookRouter);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -101,7 +104,8 @@ if (require.main === module) {
 
   httpServer.listen(PORT, () => {
     console.log(`API + socket.io escuchando en http://localhost:${PORT}`);
-    startZnunyTicketPoller(io);
-    startZnunyStatePoller(io);
+    // El push de Znuny (/api/znuny/webhook) adelanta el próximo ciclo de ambos.
+    registerWakeTarget(startZnunyTicketPoller(io).wakeUp);
+    registerWakeTarget(startZnunyStatePoller(io).wakeUp);
   });
 }
