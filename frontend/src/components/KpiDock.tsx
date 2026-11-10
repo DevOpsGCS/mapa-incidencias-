@@ -11,16 +11,12 @@ interface KpiDockProps {
   isPending?: boolean;
 }
 
-const TREND_WINDOW = 30;
-
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = false }: KpiDockProps) {
   const topName = catalog.priorities.find((p) => p.id === catalog.topPriorityId)?.name ?? "Prioridad máxima";
-  // stats.trend ya cubre los últimos 30 días calendario de El Salvador.
-  const trendTotal = stats.trend.slice(-TREND_WINDOW).reduce((acc, p) => acc + p.count, 0);
   const items: { label: string; value: number; color?: string; alarm?: boolean; hint?: string }[] = [
     { label: "Abiertos", value: stats.totalOpen },
     {
@@ -29,12 +25,8 @@ export function KpiDock({ stats, catalog, queue, onQueueChange, isPending = fals
       color: stats.topPriorityOpen > 0 ? "var(--data-p0)" : undefined,
       alarm: stats.topPriorityOpen > 0,
     },
-    { label: "Cerrados hoy", value: stats.closedToday },
-    {
-      label: `Tendencia (${TREND_WINDOW} d)`,
-      value: trendTotal,
-      hint: "tickets creados",
-    },
+    // Total de tickets cargados (respeta el filtro de cola y los permisos del usuario).
+    { label: "Total de tickets", value: stats.total },
   ];
 
   return (
