@@ -133,6 +133,28 @@ export function useDashboardData() {
     [pushNotification]
   );
 
+  /**
+   * SOLO DESARROLLO (botón "Probar notificación" de DevNotificationTester):
+   * dispara campanada + tarjeta + voz con un ticket real ya cargado, sin
+   * modificar datos. Nunca escribe en Znuny.
+   */
+  const demoNotification = useCallback(
+    (kind: "new" | "status_changed") => {
+      const tickets = stateRef.current.tickets;
+      if (tickets.length === 0) return;
+      const ticket = tickets[Math.floor(Math.random() * tickets.length)];
+      const states = (catalog?.states ?? []).filter((s) => s.name !== ticket.state).map((s) => s.name);
+      playTicketChime();
+      pushNotification({
+        id: `demo-${ticket.id}-${Date.now()}`,
+        kind,
+        ticket,
+        previousState: kind === "status_changed" ? states[0] ?? "abierto" : undefined,
+      });
+    },
+    [catalog, pushNotification]
+  );
+
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
@@ -173,5 +195,5 @@ export function useDashboardData() {
     [state.tickets, state.sites, catalog]
   );
 
-  return { ...state, error: state.error ?? (catalog ? null : catalogError), connected, catalog, stats, notifications, dismissNotification, refresh: loadFullState };
+  return { ...state, error: state.error ?? (catalog ? null : catalogError), connected, catalog, stats, notifications, dismissNotification, demoNotification, refresh: loadFullState };
 }

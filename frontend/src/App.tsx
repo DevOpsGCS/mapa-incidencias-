@@ -8,6 +8,7 @@ import { LoadingSkeleton } from "./components/LoadingSkeleton";
 import { MetricsView } from "./components/MetricsView";
 import { NoQueueAccessBanner } from "./components/NoQueueAccessBanner";
 import { NotificationStack } from "./components/NotificationStack";
+import { DevNotificationTester } from "./components/DevNotificationTester";
 import { TopBar, DashboardView } from "./components/TopBar";
 import { bannerState } from "./lib/bannerState";
 import { useDashboardData } from "./hooks/useDashboardData";
@@ -30,6 +31,7 @@ export default function App() {
     serviceDeskOk,
     notifications,
     dismissNotification,
+    demoNotification,
     refresh,
   } = useDashboardData();
   // El 503 del backend dice lo mismo que el aviso de mesa caída: mostrar solo uno.
@@ -51,6 +53,8 @@ export default function App() {
         onOpenAdmin={() => navigate("/admin")}
         onLogout={logout}
       />
+      {/* Solo en desarrollo (npm run dev): Vite elimina este bloque del build de producción. */}
+      {import.meta.env.DEV && <DevNotificationTester onTest={demoNotification} />}
       <NotificationStack
         notifications={notifications}
         catalog={catalog}
