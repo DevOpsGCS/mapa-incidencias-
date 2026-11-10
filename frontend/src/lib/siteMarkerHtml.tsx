@@ -20,6 +20,15 @@ const MAIN_OFFSET = (WRAPPER_SIZE - MAIN_SIZE) / 2; // 17
 export const MAIN_CENTER = WRAPPER_SIZE / 2; // 45 == centro del ícono principal
 export const MARKER_WRAPPER_SIZE = WRAPPER_SIZE;
 
+// Forma de pin de ubicación (decisión del usuario 10-nov): una punta debajo
+// del círculo. La punta es el ANCLA del marcador: apoya en la coordenada real
+// del sitio, así que el círculo queda arriba del punto, como un pin de mapa.
+const TAIL_HALF_WIDTH = 10;
+const TAIL_HEIGHT = 16;
+const TAIL_TOP = MAIN_OFFSET + MAIN_SIZE - 4; // 69: se mete un poco bajo el aro
+/** y (dentro del wrapper) de la punta del pin = ancla en el mapa. */
+export const MARKER_TIP_Y = TAIL_TOP + TAIL_HEIGHT; // 85
+
 // Aro segmentado: círculo interior más chico centrado con padding fijo, así
 // el conic-gradient del exterior se ve como un donut y no como un relleno
 // sólido.
@@ -34,8 +43,18 @@ const BADGE_SIZE = 24;
 const BADGE_OFFSET = 6;
 // La etiqueta del nombre termina 2px por encima de la insignia (y = 9 dentro del wrapper).
 const LABEL_BOTTOM_Y = MAIN_OFFSET - BADGE_OFFSET - 2;
-/** Distancia (sin zoom de TV) del ancla del marcador al borde inferior de la etiqueta. */
-export const LABEL_ABOVE_ANCHOR = MAIN_CENTER - LABEL_BOTTOM_Y;
+/** Distancia (sin zoom de TV) del ancla del marcador (la punta del pin) al borde inferior de la etiqueta. */
+export const LABEL_ABOVE_ANCHOR = MARKER_TIP_Y - LABEL_BOTTOM_Y;
+
+/** Color de la punta: la prioridad más alta con tickets abiertos; gris si no hay. */
+function tailColor(presence: PriorityPresence): string {
+  const [top, high, normal, low] = presence;
+  if (top) return "var(--fill-danger)";
+  if (high) return "var(--fill-warning)";
+  if (normal) return "var(--fill-accent)";
+  if (low) return "var(--fill-success)";
+  return "var(--line-strong)";
+}
 
 /**
  * Aro de prioridad: 4 cuadrantes fijos en sentido horario desde las 12
@@ -179,7 +198,18 @@ export function buildSiteMarkerHtml({
       ">${escapeAttr(siteName)}</div>`
     : "";
 
-  return `<div data-site-marker="${escapeAttr(siteId ?? "")}" data-secondary-count="${iconsToShow.length}" style="position:relative;width:${WRAPPER_SIZE}px;height:${WRAPPER_SIZE}px;transform:scale(var(--hud-zoom,1));transform-origin:${MAIN_CENTER}px ${MAIN_CENTER}px;">
+  // Punta del pin: triángulo con bordes CSS (no SVG: var() en atributos SVG falla en TV).
+  const tailHtml = `<div data-pin-tail style="
+      position:absolute;left:${MAIN_CENTER - TAIL_HALF_WIDTH}px;top:${TAIL_TOP}px;z-index:4;
+      width:0;height:0;
+      border-left:${TAIL_HALF_WIDTH}px solid transparent;
+      border-right:${TAIL_HALF_WIDTH}px solid transparent;
+      border-top:${TAIL_HEIGHT}px solid ${tailColor(priorityPresence)};
+      filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+    "></div>`;
+
+  return `<div data-site-marker="${escapeAttr(siteId ?? "")}" data-secondary-count="${iconsToShow.length}" style="position:relative;width:${WRAPPER_SIZE}px;height:${WRAPPER_SIZE}px;transform:scale(var(--hud-zoom,1));transform-origin:${MAIN_CENTER}px ${MARKER_TIP_Y}px;">
+      ${tailHtml}
       <div class="${pulseClass}" style="
         position:absolute;left:${MAIN_OFFSET}px;top:${MAIN_OFFSET}px;z-index:5;
         width:${MAIN_SIZE}px;height:${MAIN_SIZE}px;border-radius:9999px;

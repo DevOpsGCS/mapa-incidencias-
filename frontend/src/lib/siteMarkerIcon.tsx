@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { PriorityPresence, QueueCount } from "./siteDominance";
-import { buildSiteMarkerHtml, MAIN_CENTER, MARKER_WRAPPER_SIZE } from "./siteMarkerHtml";
+import { buildSiteMarkerHtml, MAIN_CENTER, MARKER_TIP_Y, MARKER_WRAPPER_SIZE } from "./siteMarkerHtml";
 
 const iconCache = new Map<string, L.DivIcon>();
 
@@ -30,8 +30,9 @@ export function buildSiteMarkerIcon(
     html: buildSiteMarkerHtml({ queueCounts, priorityPresence, selected, siteId, imageUrl, siteName }),
     className: "",
     iconSize: [MARKER_WRAPPER_SIZE, MARKER_WRAPPER_SIZE],
-    iconAnchor: [MAIN_CENTER, MAIN_CENTER],
-    popupAnchor: [0, -MAIN_CENTER],
+    // Ancla en la punta del pin: la punta apoya en la coordenada del sitio.
+    iconAnchor: [MAIN_CENTER, MARKER_TIP_Y],
+    popupAnchor: [0, -MARKER_TIP_Y],
   });
 
   iconCache.set(cacheKey, icon);

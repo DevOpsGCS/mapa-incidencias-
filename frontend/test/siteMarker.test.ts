@@ -114,4 +114,20 @@ describe("buildSiteMarkerHtml", () => {
     });
     expect(html).not.toContain("data-site-label");
   });
+
+  it("forma de pin: la punta toma el color de la prioridad más alta abierta", () => {
+    const html = buildSiteMarkerHtml({
+      queueCounts: [],
+      priorityPresence: [false, true, true, false],
+      selected: false,
+      imageUrl: null,
+    });
+    expect(html).toContain("data-pin-tail");
+    expect(html).toMatch(/data-pin-tail[\s\S]*border-top:16px solid var\(--fill-warning\)/);
+  });
+
+  it("forma de pin: sin tickets abiertos la punta es gris", () => {
+    const html = buildSiteMarkerHtml({ queueCounts: [], priorityPresence: EMPTY_PRESENCE, selected: false, imageUrl: null });
+    expect(html).toMatch(/data-pin-tail[\s\S]*border-top:16px solid var\(--line-strong\)/);
+  });
 });
