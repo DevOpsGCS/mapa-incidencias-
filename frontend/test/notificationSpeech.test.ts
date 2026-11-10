@@ -72,3 +72,44 @@ describe("shouldSpeak", () => {
     expect(shouldSpeak("owner_changed")).toBe(false);
   });
 });
+
+import { claimSpeech } from "../src/lib/notificationSpeech";
+
+function memoryStorage(): Storage {
+  const data = new Map<string, string>();
+  return {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => void data.set(k, v),
+    removeItem: (k: string) => void data.delete(k),
+    clear: () => data.clear(),
+    key: () => null,
+    get length() {
+      return data.size;
+    },
+  } as Storage;
+}
+
+describe("claimSpeech (una sola lectura por aviso entre pestañas)", () => {
+  it("la segunda pestaña con el mismo aviso no vuelve a hablar", () => {
+    const shared = memoryStorage();
+    expect(claimSpeech("new:155", 1_000, shared)).toBe(true);
+    expect(claimSpeech("new:155", 1_500, shared)).toBe(false);
+  });
+
+  it("otro ticket sí habla", () => {
+    const shared = memoryStorage();
+    expect(claimSpeech("new:155", 1_000, shared)).toBe(true);
+    expect(claimSpeech("new:156", 1_200, shared)).toBe(true);
+  });
+
+  it("las reservas viejas (más de 5 min) se descartan", () => {
+    const shared = memoryStorage();
+    expect(claimSpeech("new:155", 0, shared)).toBe(true);
+    expect(claimSpeech("new:155", 6 * 60_000, shared)).toBe(true);
+  });
+
+  it("sin localStorage usa la memoria de la pestaña", () => {
+    expect(claimSpeech("new:999", 1_000, null)).toBe(true);
+    expect(claimSpeech("new:999", 2_000, null)).toBe(false);
+  });
+});

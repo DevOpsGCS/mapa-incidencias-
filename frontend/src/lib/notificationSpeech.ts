@@ -10,8 +10,12 @@ import { isSoundMuted } from "./notificationSound";
  */
 
 export interface SpeechNotification {
+  /** Id de la notificación; las de prueba ("demo-…", solo en local) no se deduplican. */
+  id?: string;
   kind: "new" | "status_changed" | "queue_changed" | "owner_changed";
   ticket: {
+    /** Id del ticket: evita leer dos veces el mismo aviso (ver claimSpeech). */
+    id?: number;
     title: string;
     priority: string;
     queue: string;
@@ -109,10 +113,54 @@ export function shouldSpeak(kind: SpeechNotification["kind"]): boolean {
   return kind === "new";
 }
 
+const SPOKEN_KEY = "spokenNotifications";
+const SPOKEN_TTL_MS = 5 * 60_000;
+const spokenHere = new Map<string, number>();
+
+/**
+ * "Reserva" la lectura de un aviso: true solo la primera vez para esa clave.
+ * Con el dashboard abierto en varias pestañas del MISMO navegador, cada una
+ * recibe el aviso y hablaba por su cuenta (se oía repetido): la reserva se
+ * comparte por localStorage, así que solo habla la primera pestaña. Sin
+ * localStorage (modo privado, TV) cae a la memoria de la propia pestaña.
+ * Dos equipos distintos (p. ej. TV y PC) siguen hablando cada uno: es lo esperado.
+ */
+export function claimSpeech(key: string, now = Date.now(), storage: Storage | null = safeStorage()): boolean {
+  const fresh = (map: Record<string, number>) => {
+    for (const [k, at] of Object.entries(map)) if (now - at > SPOKEN_TTL_MS) delete map[k];
+    return map;
+  };
+  if (storage) {
+    try {
+      const map = fresh(JSON.parse(storage.getItem(SPOKEN_KEY) ?? "{}") as Record<string, number>);
+      if (map[key]) return false;
+      map[key] = now;
+      storage.setItem(SPOKEN_KEY, JSON.stringify(map));
+      return true;
+    } catch {
+      // cae a la memoria local
+    }
+  }
+  const last = spokenHere.get(key);
+  if (last && now - last <= SPOKEN_TTL_MS) return false;
+  spokenHere.set(key, now);
+  return true;
+}
+
+function safeStorage(): Storage | null {
+  try {
+    return typeof window !== "undefined" ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Lee la notificación después de la campanada (si el sonido no está silenciado y es un ticket nuevo). */
 export function announceNotification(n: SpeechNotification) {
   const s = synth();
   if (!s || !shouldSpeak(n.kind) || isSoundMuted() || queued >= MAX_QUEUED) return;
+  const isDemo = n.id?.startsWith("demo-") ?? false;
+  if (!isDemo && n.ticket.id !== undefined && !claimSpeech(`${n.kind}:${n.ticket.id}`)) return;
   queued += 1;
   window.setTimeout(() => {
     const u = utterance(s, buildNotificationSpeech(n));
