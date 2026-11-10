@@ -1,6 +1,7 @@
 import { IconChevronRight, IconLogout } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import logo from "../img/logo_gcs_blanco.png";
+import serviceDeskLogo from "../img/GCS_logo_nuevo_font_transparente.svg";
 import { SoundToggle } from "./SoundToggle";
 import { SyncStatus } from "./SyncStatus";
 
@@ -28,9 +29,15 @@ export function TopBar({
   onLogout,
 }: TopBarProps) {
   return (
-    <header className="hud-scale fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between gap-4 glass px-5">
+    <header className="hud-scale fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between gap-4 px-5">
       <div className="flex items-center gap-3">
         <img src={logo} alt="Global Customs Solutions" className="h-8 w-auto" />
+        <span
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white"
+          title="Mesa de Servicio"
+        >
+          <img src={serviceDeskLogo} alt="Mesa de Servicio" className="h-6 w-6" />
+        </span>
         <div>
           <h1 className="text-[15px] font-bold leading-tight text-text-strong">Mapa de Incidencias</h1>
           <p className="mono-label mt-0.5 font-mono text-[10px] text-text-label">

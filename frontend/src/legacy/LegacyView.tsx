@@ -59,7 +59,7 @@ export function LegacyView() {
   const notice = meta.source === "snapshot" && meta.frozenAt ? `Datos congelados al ${formatFrozenDate(meta.frozenAt)}` : null;
 
   return (
-    <div className="thin-scroll h-full overflow-y-auto px-5 pb-6 pt-[92px]">
+    <div className="under-topbar thin-scroll h-full overflow-y-auto px-5 pb-6 pt-[92px]">
       <div className="mx-auto flex max-w-screen-2xl flex-col gap-4">
         <header className="flex flex-wrap items-center gap-3">
           <img src={osTicketLogo} alt="osTicket" className="h-7 w-7 rounded-[6px] object-cover" />

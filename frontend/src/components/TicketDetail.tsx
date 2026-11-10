@@ -1,4 +1,4 @@
-import { ServiceDeskLink } from "./ServiceDeskLink";
+import { TicketTitleLink } from "./TicketTitleLink";
 import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
 import { priorityTextColor, priorityTint } from "../lib/priorityTint";
 import { queueLabel } from "../lib/sitePanel";
@@ -40,7 +40,9 @@ export function TicketDetail({ ticket, catalog, emptyText = "Sin tickets con est
         <p className="mono-label mb-1 text-[11px] text-text-label" style={{ letterSpacing: "0.12em" }}>
           {ticket.tn}
         </p>
-        <h3 className="text-[17px] font-bold leading-snug text-text-strong">{ticket.title}</h3>
+        <h3 className="text-[17px] font-bold leading-snug text-text-strong">
+          <TicketTitleLink title={ticket.title} href={ticket.znunyUrl} />
+        </h3>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -70,10 +72,6 @@ export function TicketDetail({ ticket, catalog, emptyText = "Sin tickets con est
           </div>
         ))}
       </dl>
-
-      <div className="mt-auto">
-        <ServiceDeskLink href={ticket.znunyUrl} variant="full" />
-      </div>
     </div>
   );
 }

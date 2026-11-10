@@ -4,7 +4,7 @@ import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank
 import { priorityTextColor, priorityTint } from "../lib/priorityTint";
 import { queueLabel } from "../lib/sitePanel";
 import { stateTypeColor } from "../lib/znunyColors";
-import { ServiceDeskLink } from "./ServiceDeskLink";
+import { TicketTitleLink } from "./TicketTitleLink";
 import { Catalog } from "../types";
 
 interface NotificationStackProps {
@@ -122,7 +122,9 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
           ×
         </button>
       </div>
-      <p className="mt-2 line-clamp-2 text-[15px] font-bold text-text-strong">{headline}</p>
+      <p className="mt-2 line-clamp-2 text-[15px] font-bold text-text-strong">
+        <TicketTitleLink title={headline} href={ticket.znunyUrl} />
+      </p>
       <p className="mt-1 text-xs text-text-muted">
         {ticket.tn} · {queueLabel(ticket.queue)}
       </p>
@@ -142,9 +144,6 @@ function Toast({ notification, catalog, priorityRank, onDismiss }: ToastProps) {
             stateTag(ticket.state, stateTypeColor(ticket.stateType))
           )}
         </div>
-        {ticket.znunyUrl ? (
-          <ServiceDeskLink href={ticket.znunyUrl} variant={isStatusChange ? "short" : "full"} />
-        ) : null}
       </div>
     </div>
   );

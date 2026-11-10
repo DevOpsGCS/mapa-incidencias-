@@ -206,6 +206,15 @@ input[type="radio"] {
   zoom: var(--hud-zoom, 1);
 }
 
+/* El banner superior no tiene fondo: en las páginas con scroll (Métricas,
+   Histórico) el contenido se desvanece al pasar por debajo del banner
+   (56px × zoom de TV) en vez de encimarse con el texto. */
+.under-topbar {
+  --topbar-h: calc(56px * var(--hud-zoom, 1));
+  -webkit-mask-image: linear-gradient(to bottom, transparent var(--topbar-h), #000 calc(var(--topbar-h) + 24px));
+  mask-image: linear-gradient(to bottom, transparent var(--topbar-h), #000 calc(var(--topbar-h) + 24px));
+}
+
 .leaflet-container {
   background: var(--map-bg);
 }

@@ -4,6 +4,7 @@ import { QueueTreeSelect } from "./QueueTreeSelect";
 import { SidePanel } from "./SidePanel";
 import { SlaBar } from "./SlaBar";
 import { TicketDetail } from "./TicketDetail";
+import { TicketTitleLink } from "./TicketTitleLink";
 import { buildPriorityRankMap, UNKNOWN_PRIORITY_RANK } from "../lib/priorityRank";
 import { priorityColor, stateTypeColor } from "../lib/znunyColors";
 import { priorityTint, SELECTION_STYLE_INSET } from "../lib/priorityTint";
@@ -197,7 +198,7 @@ export function TicketsTable({
       case "title":
         return (
           <td key={col} className="max-w-xs truncate px-3 text-text-strong">
-            {ticket.title}
+            <TicketTitleLink title={ticket.title} href={ticket.znunyUrl} />
           </td>
         );
       case "queue":
