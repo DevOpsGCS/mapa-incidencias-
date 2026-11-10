@@ -18,7 +18,12 @@ function formatAgo(seconds: number): string {
   return `hace ${Math.floor(seconds / 60)} min`;
 }
 
-/** Indicador de sincronización: "late" con cada poll real del backend (haya o no cambios). */
+/**
+ * Indicador de sincronización: solo un punto de color (decisión del usuario 10-nov,
+ * sin texto); el estado en palabras queda en el tooltip y en aria-label.
+ * Verde = sano (late con cada poll real del backend), amarillo = sin latido
+ * hace más de 50 s o sin conexión, rojo = el backend no llega a la Mesa de Servicio.
+ */
 export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncStatusProps) {
   const [, forceTick] = useState(0);
 
@@ -59,8 +64,16 @@ export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncSt
 
   return (
     <div
-      className="flex h-9 items-center gap-2 rounded-[6px] bg-surface-2 px-3 font-mono text-[12px] text-text"
-      title={!serviceDeskOk ? "El dashboard sigue conectado, pero no puede consultar la Mesa de Servicio" : undefined}
+      role="status"
+      aria-label={healthy ? `Sincronizado (${label})` : label}
+      className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-surface-2"
+      title={
+        !serviceDeskOk
+          ? "El dashboard sigue conectado, pero no puede consultar la Mesa de Servicio"
+          : healthy
+            ? `Sincronizado con la Mesa de Servicio (${label})`
+            : label
+      }
     >
       <span className="relative flex h-2 w-2">
         <span className="absolute inline-flex h-full w-full rounded-full" style={{ background: color }} />
@@ -72,7 +85,6 @@ export function SyncStatus({ connected, lastHeartbeatAt, serviceDeskOk }: SyncSt
           />
         )}
       </span>
-      {label}
     </div>
   );
 }
